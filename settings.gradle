@@ -1,0 +1,3 @@
+rootProject.name = 'scalar-admin-k8s'
+include 'lib'
+include 'cli'
