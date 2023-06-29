@@ -73,7 +73,8 @@ public class TargetPodsTest {
             null,
             null,
             null);
-    verify(appsV1ApiMocked, atLeastOnce()).readNamespacedDeployment("scalardb", namespace, null);
+    verify(appsV1ApiMocked, atLeastOnce())
+        .readNamespacedDeployment("helm-release-1-scalardb", namespace, null);
   }
 
   @Test

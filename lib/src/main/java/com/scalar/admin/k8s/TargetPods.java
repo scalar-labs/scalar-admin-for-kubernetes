@@ -110,7 +110,8 @@ class TargetPods {
     V1Deployment deployment = null;
 
     if (product != null) {
-      deployment = readNamespacedDeployment(k8sClient, namespace, product.getType());
+      deployment =
+          readNamespacedDeployment(k8sClient, namespace, helmReleaseName, product.getType());
     }
 
     return new TargetPods(
@@ -130,7 +131,21 @@ class TargetPods {
   }
 
   private static V1Deployment readNamespacedDeployment(
-      KubernetesClient k8sClient, String namespace, String name) {
+      KubernetesClient k8sClient, String namespace, String helmReleaseName, String productType) {
+
+    String name =
+        (helmReleaseName.contains(productType))
+            ? helmReleaseName
+            : helmReleaseName + "-" + productType;
+
+    if (name.length() > 63) {
+      name = name.substring(0, 63);
+    }
+
+    while (name.endsWith("-")) {
+      name = name.substring(0, name.length() - 1);
+    } // don't worry about empty name because helmReleaseName has to be started with alphanumeric
+
     try {
       return k8sClient.getAppsV1Api().readNamespacedDeployment(name, namespace, null);
     } catch (ApiException e) {
@@ -203,7 +218,8 @@ class TargetPods {
       }
     }
 
-    V1Deployment afterD = readNamespacedDeployment(k8sClient, namespace, product.getType());
+    V1Deployment afterD =
+        readNamespacedDeployment(k8sClient, namespace, helmReleaseName, product.getType());
     V1Deployment beforeD = deployment;
     if (!beforeD
         .getMetadata()
