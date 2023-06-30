@@ -107,6 +107,55 @@ public class TargetPodsTest {
   }
 
   @Test
+  public void findTargetPods_WithDifferentProductSpecified_ShouldReturnZeroSize()
+      throws ApiException {
+    // Arrange
+    String namespace = "namespace-2";
+    String helmReleaseName = "helm-release-2";
+    String productType = "scalardb-cluster";
+    Integer adminPort = 100;
+
+    mockK8sClient();
+
+    List<V1Pod> pods = Arrays.asList(mockPod("pod1", "1", 0, "scalardb"));
+    when(podListMocked.getItems()).thenReturn(pods);
+
+    // Act
+    TargetPods targetPods =
+        TargetPods.findTargetPods(
+            k8sClientMocked, namespace, helmReleaseName, productType, adminPort);
+
+    // Assert
+    assertEquals(0, targetPods.getPods().size());
+  }
+
+  @Test
+  public void findTargetPods_WithDifferentProductSpecified_ShouldOnlyReturnSpecifiedPods()
+      throws ApiException {
+    // Arrange
+    String namespace = "namespace-2";
+    String helmReleaseName = "helm-release-2";
+    String productType = "scalardb-cluster";
+    Integer adminPort = 100;
+
+    mockK8sClient();
+
+    List<V1Pod> pods =
+        Arrays.asList(
+            mockPod("pod1", "1", 0, "scalardb"), mockPod("pod2", "1", 0, "scalardb-cluster"));
+    when(podListMocked.getItems()).thenReturn(pods);
+
+    // Act
+    TargetPods targetPods =
+        TargetPods.findTargetPods(
+            k8sClientMocked, namespace, helmReleaseName, productType, adminPort);
+
+    // Assert
+    assertEquals(1, targetPods.getPods().size());
+    assertEquals("pod2", targetPods.getPods().get(0).getMetadata().getName());
+  }
+
+  @Test
   public void isUpdated_WithPodCountUpdated_ShouldBeTrue() throws ApiException {
     // Arrange
     String namespace = "namespace-3";

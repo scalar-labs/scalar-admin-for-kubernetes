@@ -86,8 +86,11 @@ class TargetPods {
 
       String appLabelValue = labels.get(LABEL_APP);
 
-      if (product != null
-          && !product.getLabelAppValue().equals(appLabelValue)
+      if (product == null && Product.allLabelAppValues().contains(appLabelValue)) {
+        product = Product.fromLabelAppValue(appLabelValue);
+      }
+
+      if (!product.getLabelAppValue().equals(appLabelValue)
           && Product.allLabelAppValues().contains(appLabelValue)
           && selected.size() > 0) {
         throw new RuntimeException(
@@ -95,12 +98,14 @@ class TargetPods {
                 + " make sure you deploy Scalar products with Scalar Helm Charts");
       }
 
-      if (product != null && product.getLabelAppValue().equals(appLabelValue)) {
-        selected.add(pod);
-      } else if (Product.allLabelAppValues().contains(appLabelValue)) {
-        product = Product.fromLabelAppValue(appLabelValue);
+      if (product.getLabelAppValue().equals(appLabelValue)) {
         selected.add(pod);
       }
+    }
+
+    if (selected.size() == 0) {
+      return new TargetPods(
+          k8sClient, namespace, helmReleaseName, product, adminPort, selected, null);
     }
 
     if (adminPort == null && product != null) {
