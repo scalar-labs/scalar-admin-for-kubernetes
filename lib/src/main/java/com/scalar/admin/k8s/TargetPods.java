@@ -90,6 +90,10 @@ class TargetPods {
         product = Product.fromLabelAppValue(appLabelValue);
       }
 
+      if (product == null) {
+        continue;
+      }
+
       if (!product.getLabelAppValue().equals(appLabelValue)
           && Product.allLabelAppValues().contains(appLabelValue)
           && selected.size() > 0) {
