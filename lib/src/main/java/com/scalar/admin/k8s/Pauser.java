@@ -1,6 +1,5 @@
 package com.scalar.admin.k8s;
 
-import java.util.Date;
 import javax.annotation.Nullable;
 
 public class Pauser {
@@ -69,11 +68,8 @@ public class Pauser {
       return 1;
     }
 
-    Date beforePause = new Date();
-
-    internalPauser.pause(targetPods.getPods(), targetPods.getAdminPort(), pauseDuration);
-
-    Date afterPause = new Date();
+    PausedDuration pausedDuration =
+        internalPauser.pause(targetPods.getPods(), targetPods.getAdminPort(), pauseDuration);
 
     if (targetPods.isUpdated()) {
       System.out.println(
@@ -84,9 +80,9 @@ public class Pauser {
 
     System.out.println(
         "Paused sucessfully. Duration: from "
-            + beforePause.toString()
+            + pausedDuration.getStartAt().toString()
             + " to "
-            + afterPause.toString());
+            + pausedDuration.getEndAt().toString());
 
     return 0;
   }

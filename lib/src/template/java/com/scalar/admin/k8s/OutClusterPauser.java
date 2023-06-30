@@ -8,6 +8,7 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ class OutClusterPauser implements InternalPauser {
     this.namespace = namespace;
   }
 
-  public void pause(List<V1Pod> pods, Integer adminPort, Integer pauseDuration) {
+  public PausedDuration pause(List<V1Pod> pods, Integer adminPort, Integer pauseDuration) {
     V1Pod pauserPod = createPauserPod(pods, adminPort);
     try {
       api.createNamespacedPod(namespace, pauserPod, null, null, null, null);
@@ -38,7 +39,11 @@ class OutClusterPauser implements InternalPauser {
       tryToDeletePod(namespace, pauserPod);
     }
 
+    Date startAt = new Date();
+
     Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
+
+    PausedDuration pausedDuration = new PausedDuration(startAt, new Date());
 
     V1Pod unpauserPod = createUnpauserPod(pods, adminPort);
     try {
@@ -51,6 +56,8 @@ class OutClusterPauser implements InternalPauser {
     } finally {
       tryToDeletePod(namespace, unpauserPod);
     }
+
+    return pausedDuration;
   }
 
   private String toIPsAndPortsString(List<V1Pod> pods, Integer adminPort) {
