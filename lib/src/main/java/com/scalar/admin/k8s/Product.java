@@ -58,49 +58,6 @@ class Product {
     }
   }
 
-  String getHelmChartName() {
-    switch (type) {
-      case "scalardb":
-        return "scalardb";
-      case "scalardb-cluster":
-        return "scalardb-cluster";
-      case "scalardl-ledger":
-        return "scalardl";
-      case "scalardl-auditor":
-        return "scalardl-audit";
-      default:
-        throw new IllegalArgumentException("Invalid product type: " + type);
-    }
-  }
-
-  String composeDeploymentName(String helmReleaseName) {
-    String chartName = getHelmChartName();
-
-    String fullname =
-        (helmReleaseName.contains(chartName)) ? helmReleaseName : helmReleaseName + "-" + chartName;
-
-    if (fullname.length() > 63) {
-      fullname = fullname.substring(0, 63);
-    }
-
-    while (fullname.endsWith("-")) {
-      fullname = fullname.substring(0, fullname.length() - 1);
-    } // don't worry about empty name because helmReleaseName has to be started with alphanumeric
-
-    switch (type) {
-      case "scalardb":
-        return fullname;
-      case "scalardb-cluster":
-        return fullname + "-node";
-      case "scalardl-ledger":
-        return fullname + "-ledger";
-      case "scalardl-auditor":
-        return fullname + "-auditor";
-      default:
-        throw new IllegalArgumentException("Invalid product type: " + type);
-    }
-  }
-
   String getType() {
     return type;
   }

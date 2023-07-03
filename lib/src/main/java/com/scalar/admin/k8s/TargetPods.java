@@ -2,6 +2,7 @@ package com.scalar.admin.k8s;
 
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import java.util.ArrayList;
@@ -119,7 +120,16 @@ class TargetPods {
     V1Deployment deployment = null;
 
     if (product != null) {
-      deployment = readNamespacedDeployment(k8sClient, namespace, helmReleaseName, product);
+      String deploymentLabelSelector =
+          LABEL_INSTANCE
+              + "="
+              + helmReleaseName
+              + ","
+              + LABEL_APP
+              + "="
+              + product.getLabelAppValue();
+
+      deployment = findTargetDeployment(k8sClient, namespace, deploymentLabelSelector);
     }
 
     return new TargetPods(
@@ -138,11 +148,36 @@ class TargetPods {
     }
   }
 
+  private static V1Deployment findTargetDeployment(
+      KubernetesClient k8sClient, String namespace, String labelSelector) {
+    V1DeploymentList deploymentList;
+    try {
+      deploymentList =
+          k8sClient
+              .getAppsV1Api()
+              .listNamespacedDeployment(
+                  namespace, null, null, null, null, labelSelector, null, null, null, null, null);
+    } catch (ApiException e) {
+      throw new RuntimeException("Failed to listNamespacedDeployment: " + e.getResponseBody());
+    }
+
+    List<V1Deployment> deployments = deploymentList.getItems();
+
+    if (deployments.size() == 0) {
+      throw new RuntimeException("No deployment is found with labelSelector: " + labelSelector);
+    }
+
+    if (deployments.size() > 1) {
+      throw new RuntimeException(
+          "Multiple Scalar products are found in the same release. This should not happen. Please"
+              + " make sure you deploy Scalar products with Scalar Helm Charts");
+    }
+
+    return deployments.get(0);
+  }
+
   private static V1Deployment readNamespacedDeployment(
-      KubernetesClient k8sClient, String namespace, String helmReleaseName, Product product) {
-
-    String name = product.composeDeploymentName(helmReleaseName);
-
+      KubernetesClient k8sClient, String namespace, String name) {
     try {
       return k8sClient.getAppsV1Api().readNamespacedDeployment(name, namespace, null);
     } catch (ApiException e) {
@@ -215,7 +250,8 @@ class TargetPods {
       }
     }
 
-    V1Deployment afterD = readNamespacedDeployment(k8sClient, namespace, helmReleaseName, product);
+    V1Deployment afterD =
+        readNamespacedDeployment(k8sClient, namespace, deployment.getMetadata().getName());
     V1Deployment beforeD = deployment;
     if (!beforeD
         .getMetadata()
