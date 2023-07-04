@@ -15,9 +15,12 @@ class KubernetesClient {
   private final CoreV1Api coreV1Api;
   private final AppsV1Api appsV1Api;
 
-  KubernetesClient(@Nullable String kubeConfigFilePath, @Nullable String kubeConfigContextName) {
+  KubernetesClient(
+      @Nullable String kubeConfigFilePath,
+      @Nullable String kubeConfigContextName,
+      boolean inCluster) {
     try {
-      if (kubeConfigFilePath != null) {
+      if (kubeConfigFilePath != null && !inCluster) {
         KubeConfig config = KubeConfig.loadKubeConfig(new FileReader(kubeConfigFilePath));
 
         if (kubeConfigContextName == null) {
@@ -30,8 +33,8 @@ class KubernetesClient {
         }
 
         Configuration.setDefaultApiClient(ClientBuilder.kubeconfig(config).build());
-      } else if (kubeConfigContextName
-          != null) { // user doesn't set `--kubeconfig` but set the `--kube-context`
+      } else if (kubeConfigContextName != null
+          && !inCluster) { // user doesn't set `--kubeconfig` but set the `--kube-context`
         if (System.getenv("KUBECONFIG") != null) {
           kubeConfigFilePath = System.getenv("KUBECONFIG");
         } else {

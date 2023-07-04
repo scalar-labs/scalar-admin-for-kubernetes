@@ -81,7 +81,7 @@ public class KubernetesClientTest {
     // Arrange
 
     // Act
-    KubernetesClient client = new KubernetesClient(null, null);
+    KubernetesClient client = new KubernetesClient(null, null, false);
 
     // Assert
     configurationMocked.verify(
@@ -107,7 +107,7 @@ public class KubernetesClientTest {
     when(clientBuilderMocked.build()).thenReturn(apiClientMocked);
 
     // Act
-    KubernetesClient client = new KubernetesClient(configName, null);
+    KubernetesClient client = new KubernetesClient(configName, null, false);
 
     // Assert
     configurationMocked.verify(() -> Configuration.setDefaultApiClient(apiClientMocked), times(1));
@@ -133,7 +133,7 @@ public class KubernetesClientTest {
     when(clientBuilderMocked.build()).thenReturn(apiClientMocked);
 
     // Act
-    KubernetesClient client = new KubernetesClient(configName, contextName);
+    KubernetesClient client = new KubernetesClient(configName, contextName, false);
 
     // Assert
     configurationMocked.verify(() -> Configuration.setDefaultApiClient(apiClientMocked), times(1));
@@ -159,7 +159,7 @@ public class KubernetesClientTest {
     when(clientBuilderMocked.build()).thenReturn(apiClientMocked);
 
     // Act
-    KubernetesClient client = new KubernetesClient(null, contextName);
+    KubernetesClient client = new KubernetesClient(null, contextName, false);
 
     // Assert
     configurationMocked.verify(() -> Configuration.setDefaultApiClient(apiClientMocked), times(1));
@@ -168,6 +168,29 @@ public class KubernetesClientTest {
 
     verify(kubeConfigMocked, never()).getCurrentContext();
     verify(kubeConfigMocked, times(1)).setContext(contextName);
+
+    assertEquals(1, coreV1ApiMocked.constructed().size());
+    assertEquals(1, appsV1ApiMocked.constructed().size());
+    assertEquals(coreV1ApiMocked.constructed().get(0), client.getCoreV1Api());
+    assertEquals(appsV1ApiMocked.constructed().get(0), client.getAppsV1Api());
+  }
+
+  @Test
+  public void
+      constructor_WithConfigAndContextGivenAndInClusterIsTrue_ShouldNotCallLoadKubeConfigAndSetContext() {
+    // Arrange
+    String configName = "file-4";
+    String contextName = "context-4";
+
+    // Act
+    KubernetesClient client = new KubernetesClient(configName, contextName, true);
+
+    // Assert
+    configurationMocked.verify(
+        () -> Configuration.setDefaultApiClient(Config.defaultClient()), times(1));
+    kubeConfigStaticMocked.verify(() -> KubeConfig.loadKubeConfig(any()), never());
+
+    verify(kubeConfigMocked, never()).setContext(anyString());
 
     assertEquals(1, coreV1ApiMocked.constructed().size());
     assertEquals(1, appsV1ApiMocked.constructed().size());

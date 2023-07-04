@@ -45,7 +45,7 @@ public class Pauser {
     this.productType = productType;
     this.adminPort = adminPort;
 
-    k8sClient = new KubernetesClient(kubeConfigFilePath, kubeConfigContextName);
+    k8sClient = new KubernetesClient(kubeConfigFilePath, kubeConfigContextName, inCluster);
 
     internalPauser =
         (inCluster) ? new InClusterPauser() : new OutClusterPauser(k8sClient, this.namespace);
