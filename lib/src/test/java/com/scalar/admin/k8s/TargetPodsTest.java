@@ -14,6 +14,7 @@ import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
@@ -30,6 +31,7 @@ public class TargetPodsTest {
   private CoreV1Api coreV1ApiMocked;
   private AppsV1Api appsV1ApiMocked;
   private V1PodList podListMocked;
+  private V1DeploymentList deploymentListMocked;
 
   @BeforeEach
   public void setUp() {
@@ -37,6 +39,7 @@ public class TargetPodsTest {
     coreV1ApiMocked = mock(CoreV1Api.class);
     appsV1ApiMocked = mock(AppsV1Api.class);
     podListMocked = mock(V1PodList.class);
+    deploymentListMocked = mock(V1DeploymentList.class);
   }
 
   @Test
@@ -73,7 +76,25 @@ public class TargetPodsTest {
             null,
             null,
             null);
-    verify(appsV1ApiMocked, atLeastOnce()).readNamespacedDeployment("scalardb", namespace, null);
+    verify(appsV1ApiMocked, atLeastOnce())
+        .listNamespacedDeployment(
+            namespace,
+            null,
+            null,
+            null,
+            null,
+            TargetPods.LABEL_INSTANCE
+                + "="
+                + helmReleaseName
+                + ","
+                + TargetPods.LABEL_APP
+                + "="
+                + "scalardb",
+            null,
+            null,
+            null,
+            null,
+            null);
   }
 
   @Test
@@ -103,6 +124,55 @@ public class TargetPodsTest {
         "Multiple Scalar products are found in the same release. This should not happen. Please"
             + " make sure you deploy Scalar products with Scalar Helm Charts",
         thrown.getMessage());
+  }
+
+  @Test
+  public void findTargetPods_WithDifferentProductSpecified_ShouldReturnZeroSize()
+      throws ApiException {
+    // Arrange
+    String namespace = "namespace-2";
+    String helmReleaseName = "helm-release-2";
+    String productType = "scalardb-cluster";
+    Integer adminPort = 100;
+
+    mockK8sClient();
+
+    List<V1Pod> pods = Arrays.asList(mockPod("pod1", "1", 0, "scalardb"));
+    when(podListMocked.getItems()).thenReturn(pods);
+
+    // Act
+    TargetPods targetPods =
+        TargetPods.findTargetPods(
+            k8sClientMocked, namespace, helmReleaseName, productType, adminPort);
+
+    // Assert
+    assertEquals(0, targetPods.getPods().size());
+  }
+
+  @Test
+  public void findTargetPods_WithDifferentProductSpecified_ShouldOnlyReturnSpecifiedPods()
+      throws ApiException {
+    // Arrange
+    String namespace = "namespace-2";
+    String helmReleaseName = "helm-release-2";
+    String productType = "scalardb-cluster";
+    Integer adminPort = 100;
+
+    mockK8sClient();
+
+    List<V1Pod> pods =
+        Arrays.asList(
+            mockPod("pod1", "1", 0, "scalardb"), mockPod("pod2", "1", 0, "scalardb-cluster"));
+    when(podListMocked.getItems()).thenReturn(pods);
+
+    // Act
+    TargetPods targetPods =
+        TargetPods.findTargetPods(
+            k8sClientMocked, namespace, helmReleaseName, productType, adminPort);
+
+    // Assert
+    assertEquals(1, targetPods.getPods().size());
+    assertEquals("pod2", targetPods.getPods().get(0).getMetadata().getName());
   }
 
   @Test
@@ -188,11 +258,8 @@ public class TargetPodsTest {
 
     mockK8sClient();
 
-    V1Deployment deployment1 = mockDeployment("1");
-    V1Deployment deployment2 = mockDeployment("2");
-    when(appsV1ApiMocked.readNamespacedDeployment(any(), any(), any()))
-        .thenReturn(deployment1)
-        .thenReturn(deployment2);
+    V1Deployment deployment2 = mockDeployment("scalardb", "2");
+    when(appsV1ApiMocked.readNamespacedDeployment(any(), any(), any())).thenReturn(deployment2);
 
     // Act
     TargetPods targetPods =
@@ -210,7 +277,12 @@ public class TargetPodsTest {
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(podListMocked);
 
-    V1Deployment deployment = mockDeployment("1");
+    V1Deployment deployment = mockDeployment("scalardb", "1");
+    List<V1Deployment> deployments = Arrays.asList(deployment);
+    when(deploymentListMocked.getItems()).thenReturn(deployments);
+    when(appsV1ApiMocked.listNamespacedDeployment(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(deploymentListMocked);
     when(appsV1ApiMocked.readNamespacedDeployment(any(), any(), any())).thenReturn(deployment);
 
     when(k8sClientMocked.getCoreV1Api()).thenReturn(coreV1ApiMocked);
@@ -243,9 +315,10 @@ public class TargetPodsTest {
     return pod;
   }
 
-  private V1Deployment mockDeployment(String resourceVersion) {
+  private V1Deployment mockDeployment(String name, String resourceVersion) {
     V1ObjectMeta metadata = mock(V1ObjectMeta.class);
     when(metadata.getResourceVersion()).thenReturn(resourceVersion);
+    when(metadata.getName()).thenReturn(name);
 
     V1Deployment deployment = mock(V1Deployment.class);
     when(deployment.getMetadata()).thenReturn(metadata);

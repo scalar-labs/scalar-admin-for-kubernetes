@@ -4,5 +4,5 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.List;
 
 interface InternalPauser {
-  void pause(List<V1Pod> pods, Integer adminPort, Integer pauseDuration);
+  PausedDuration pause(List<V1Pod> pods, Integer adminPort, Integer pauseDuration);
 }

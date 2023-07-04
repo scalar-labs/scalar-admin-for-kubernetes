@@ -2,6 +2,7 @@ package com.scalar.admin.k8s;
 
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import java.util.ArrayList;
@@ -86,8 +87,15 @@ class TargetPods {
 
       String appLabelValue = labels.get(LABEL_APP);
 
-      if (product != null
-          && !product.getLabelAppValue().equals(appLabelValue)
+      if (product == null && Product.allLabelAppValues().contains(appLabelValue)) {
+        product = Product.fromLabelAppValue(appLabelValue);
+      }
+
+      if (product == null) {
+        continue;
+      }
+
+      if (!product.getLabelAppValue().equals(appLabelValue)
           && Product.allLabelAppValues().contains(appLabelValue)
           && selected.size() > 0) {
         throw new RuntimeException(
@@ -95,12 +103,14 @@ class TargetPods {
                 + " make sure you deploy Scalar products with Scalar Helm Charts");
       }
 
-      if (product != null && product.getLabelAppValue().equals(appLabelValue)) {
-        selected.add(pod);
-      } else if (Product.allLabelAppValues().contains(appLabelValue)) {
-        product = Product.fromLabelAppValue(appLabelValue);
+      if (product.getLabelAppValue().equals(appLabelValue)) {
         selected.add(pod);
       }
+    }
+
+    if (selected.size() == 0) {
+      return new TargetPods(
+          k8sClient, namespace, helmReleaseName, product, adminPort, selected, null);
     }
 
     if (adminPort == null && product != null) {
@@ -110,7 +120,16 @@ class TargetPods {
     V1Deployment deployment = null;
 
     if (product != null) {
-      deployment = readNamespacedDeployment(k8sClient, namespace, product.getType());
+      String deploymentLabelSelector =
+          LABEL_INSTANCE
+              + "="
+              + helmReleaseName
+              + ","
+              + LABEL_APP
+              + "="
+              + product.getLabelAppValue();
+
+      deployment = findTargetDeployment(k8sClient, namespace, deploymentLabelSelector);
     }
 
     return new TargetPods(
@@ -127,6 +146,34 @@ class TargetPods {
     } catch (ApiException e) {
       throw new RuntimeException("Failed to listNamespacedPod: " + e.getResponseBody());
     }
+  }
+
+  private static V1Deployment findTargetDeployment(
+      KubernetesClient k8sClient, String namespace, String labelSelector) {
+    V1DeploymentList deploymentList;
+    try {
+      deploymentList =
+          k8sClient
+              .getAppsV1Api()
+              .listNamespacedDeployment(
+                  namespace, null, null, null, null, labelSelector, null, null, null, null, null);
+    } catch (ApiException e) {
+      throw new RuntimeException("Failed to listNamespacedDeployment: " + e.getResponseBody());
+    }
+
+    List<V1Deployment> deployments = deploymentList.getItems();
+
+    if (deployments.size() == 0) {
+      throw new RuntimeException("No deployment is found with labelSelector: " + labelSelector);
+    }
+
+    if (deployments.size() > 1) {
+      throw new RuntimeException(
+          "Multiple Scalar products are found in the same release. This should not happen. Please"
+              + " make sure you deploy Scalar products with Scalar Helm Charts");
+    }
+
+    return deployments.get(0);
   }
 
   private static V1Deployment readNamespacedDeployment(
@@ -203,7 +250,8 @@ class TargetPods {
       }
     }
 
-    V1Deployment afterD = readNamespacedDeployment(k8sClient, namespace, product.getType());
+    V1Deployment afterD =
+        readNamespacedDeployment(k8sClient, namespace, deployment.getMetadata().getName());
     V1Deployment beforeD = deployment;
     if (!beforeD
         .getMetadata()
