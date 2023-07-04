@@ -49,7 +49,7 @@ jobs:
       - name: Build Shadow Jar
         run: ./gradlew shadowJar
 
-      - name: Run Shadow Jar (outcluster)
+      - name: Run Shadow Jar (from outside the cluster)
         run: java -jar cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl
 
       - name: Copy Shadow Jar to tester Pod
@@ -57,5 +57,5 @@ jobs:
           kubectl wait --for=condition=Ready pod/java8
           kubectl cp cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar java8:/tmp
 
-      - name: Run Shadow Jar (incluster)
+      - name: Run Shadow Jar (from inside the cluster)
         run: kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl --in-cluster
