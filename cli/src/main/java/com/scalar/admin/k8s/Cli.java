@@ -38,13 +38,16 @@ class Cli implements Callable<Integer> {
 
   @Option(
       names = {"--kubeconfig"},
-      description = "Path to the kubeconfig file. Use default config if not specified.")
+      description =
+          "Path to the kubeconfig file. Use default config if not specified."
+              + "If --in-cluster is set, this value is ignored")
   private String kubeConfigFilePath;
 
   @Option(
       names = {"--kube-context"},
       description =
-          "Name of the kubeconfig context to use. Use the `current-context` if not specified.")
+          "Name of the kubeconfig context to use. Use the `current-context` if not specified."
+              + "If --in-cluster is set, this value is ignored")
   private String kubeConfigContext;
 
   @Option(
