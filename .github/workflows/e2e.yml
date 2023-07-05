@@ -38,19 +38,24 @@ jobs:
         run: |
           export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
           docker pull ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION
+          docker pull ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION
           kind load docker-image ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION -n kind
+          kind load docker-image ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION -n kind
 
       - name: Deploy ScalarDL Ledger to Kind
         run: |
           export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
           envsubst < .github/k8s-resources-for-e2e.yaml | kubectl apply -f -
           kubectl wait --for=condition=Available deployment/scalardl-ledger
+          kubectl wait --for=condition=Available deployment/scalardl-auditor
 
       - name: Build Shadow Jar
         run: ./gradlew shadowJar
 
       - name: Run Shadow Jar (from outside the cluster)
-        run: java -jar cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl
+        run: |
+          java -jar cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl
+          java -jar cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl-auditor
 
       - name: Copy Shadow Jar to tester Pod
         run: |
@@ -58,4 +63,6 @@ jobs:
           kubectl cp cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar java8:/tmp
 
       - name: Run Shadow Jar (from inside the cluster)
-        run: kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl --in-cluster
+        run: |
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl --in-cluster
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl-auditor --in-cluster
