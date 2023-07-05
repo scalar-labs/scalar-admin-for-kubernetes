@@ -65,6 +65,11 @@ public class Pauser {
       throw new IllegalArgumentException("pauseDuration is required");
     }
 
+    if (pauseDuration < 10) {
+      throw new IllegalArgumentException(
+          "A short duration of less than 10 seconds is not recommended.");
+    }
+
     TargetPods targetPods =
         TargetPods.findTargetPods(k8sClient, namespace, helmReleaseName, productType, adminPort);
 
