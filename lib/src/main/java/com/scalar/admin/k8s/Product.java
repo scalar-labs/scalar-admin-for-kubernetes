@@ -48,7 +48,7 @@ class Product {
       case "scalardb":
         return 60051;
       case "scalardb-cluster":
-        return 60051;
+        return 60053;
       case "scalardl-ledger":
         return 50053;
       case "scalardl-auditor":
