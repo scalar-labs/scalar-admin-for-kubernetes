@@ -66,7 +66,7 @@ class TargetPods {
     }
 
     if (helmReleaseName == null) {
-      throw new IllegalArgumentException("helmReleaseName is required");
+      throw new IllegalArgumentException("--release-name option is required");
     }
 
     Product product = null;
