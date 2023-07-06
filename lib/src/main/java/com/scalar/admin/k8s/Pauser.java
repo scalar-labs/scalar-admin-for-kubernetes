@@ -89,7 +89,7 @@ public class Pauser {
     }
 
     System.out.println(
-        "Paused sucessfully. Duration: from "
+        "Paused successfully. Duration: from "
             + pausedDuration.getStartAt().toString()
             + " to "
             + pausedDuration.getEndAt().toString());
