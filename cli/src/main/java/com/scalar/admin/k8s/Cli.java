@@ -5,7 +5,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(name = "scalar-admin-k8s-cli", description = "Scalar Admin pause tool for Kubernetes")
+@Command(name = "scalar-admin-k8s-cli", description = "Scalar Admin pause tool for the Kubernetes environment")
 class Cli implements Callable<Integer> {
 
   @Option(
