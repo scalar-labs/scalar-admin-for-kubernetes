@@ -187,6 +187,7 @@ class TargetPods {
 
   boolean isUpdated() {
     if (pods.size() == 0) {
+      System.out.println("No Scalar pods found. Nothing to check if pods are updated.");
       return false;
     }
 
