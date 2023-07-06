@@ -82,7 +82,10 @@ class TargetPods {
       Map<String, String> labels = pod.getMetadata().getLabels();
 
       if (!labels.containsKey(LABEL_APP)) {
-        continue;
+        throw new RuntimeException(
+            "A pod does not have the label: "
+                + LABEL_APP
+                + ". Please deploy Scalar products with Scalar Helm Charts");
       }
 
       String appLabelValue = labels.get(LABEL_APP);
@@ -204,7 +207,10 @@ class TargetPods {
                 p -> {
                   Map<String, String> labels = p.getMetadata().getLabels();
                   if (!labels.containsKey(LABEL_APP)) {
-                    return false;
+                    throw new RuntimeException(
+                        "A pod does not have the label: "
+                            + LABEL_APP
+                            + ". Please deploy Scalar products with Scalar Helm Charts");
                   }
 
                   String appLabelValue = labels.get(LABEL_APP);
