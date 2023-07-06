@@ -66,7 +66,7 @@ class TargetPods {
     }
 
     if (helmReleaseName == null) {
-      throw new IllegalArgumentException("helmReleaseName is required");
+      throw new IllegalArgumentException("--release-name option is required");
     }
 
     Product product = null;
@@ -82,7 +82,10 @@ class TargetPods {
       Map<String, String> labels = pod.getMetadata().getLabels();
 
       if (!labels.containsKey(LABEL_APP)) {
-        continue;
+        throw new RuntimeException(
+            "A pod does not have the label: "
+                + LABEL_APP
+                + ". Please deploy Scalar products with Scalar Helm Charts");
       }
 
       String appLabelValue = labels.get(LABEL_APP);
@@ -187,6 +190,7 @@ class TargetPods {
 
   boolean isUpdated() {
     if (pods.size() == 0) {
+      System.out.println("No Scalar pods found. Nothing to check if pods are updated.");
       return false;
     }
 
@@ -203,7 +207,10 @@ class TargetPods {
                 p -> {
                   Map<String, String> labels = p.getMetadata().getLabels();
                   if (!labels.containsKey(LABEL_APP)) {
-                    return false;
+                    throw new RuntimeException(
+                        "A pod does not have the label: "
+                            + LABEL_APP
+                            + ". Please deploy Scalar products with Scalar Helm Charts");
                   }
 
                   String appLabelValue = labels.get(LABEL_APP);

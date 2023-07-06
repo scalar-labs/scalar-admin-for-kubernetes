@@ -5,7 +5,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@Command(name = "scalar-admin-k8s-cli", description = "Scalar Admin pause tool for Kubernetes")
+@Command(name = "scalar-admin-k8s-cli", description = "Scalar Admin pause tool for the Kubernetes environment")
 class Cli implements Callable<Integer> {
 
   @Option(
@@ -25,8 +25,8 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--release-name", "-r"},
       description =
-          "Helm's release name that you specify when you run the `helm install <releaseName>`"
-              + " command. You can see the <releaseName> by using the `helm list` command",
+          "Helm's release name that you specify when you run the `helm install <RELEASE_NAME>`"
+              + " command. You can see the <RELEASE_NAME> by using the `helm list` command",
       required = true)
   private String helmReleaseName;
 
