@@ -1,0 +1,63 @@
+name: Run the end-to-end test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - uses: actions/checkout@v3
+
+      - uses: helm/kind-action@v1.7.0
+        with:
+          cluster_name: kind
+
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Find latest version for ScalarDL
+        id: version
+        run: |
+          sudo apt-get install jq
+          GHRC_TOKEN=`echo ${{ secrets.CR_PAT }} | base64`
+          SCALARDL_LATEST_VERSION=`curl -s -H "Authorization: Bearer $GHRC_TOKEN" https://ghcr.io/v2/scalar-labs/scalar-ledger/tags/list | jq .tags[] | sort -Vr | head -n1 | tr -d '"v'`
+          echo "scalardl_latest_version=${SCALARDL_LATEST_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Load ScalarDL Ledger image to Kind
+        run: |
+          export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
+          docker pull ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION
+          docker pull ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION
+          kind load docker-image ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION -n kind
+          kind load docker-image ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION -n kind
+
+      - name: Deploy ScalarDL Ledger to Kind
+        run: |
+          export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
+          envsubst < .github/k8s-resources-for-e2e.yaml | kubectl apply -f -
+          kubectl wait --for=condition=Available deployment/scalardl-ledger
+          kubectl wait --for=condition=Available deployment/scalardl-auditor
+
+      - name: Build Shadow Jar
+        run: ./gradlew shadowJar
+
+      - name: Copy Shadow Jar to tester Pod
+        run: |
+          kubectl wait --for=condition=Ready pod/java8
+          kubectl cp cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar java8:/tmp
+
+      - name: Run Shadow Jar
+        run: |
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl-auditor
