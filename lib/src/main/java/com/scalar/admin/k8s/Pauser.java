@@ -11,29 +11,26 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Pauser {
 
-  static final String DEFAULT_NAMESPACE = "default";
-
   private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
 
   /**
-   * @param namespace The namespace where the pods are deployed. `default` is used if this parameter
-   *     is null.
-   * @param helmReleaseName The Helm release name used to deploy the pods. This parameter can not be
-   *     null.
+   * @param namespace The namespace where the pods are deployed.
+   * @param helmReleaseName The Helm release name used to deploy the pods.
    */
-  public Pauser(@Nullable String namespace, String helmReleaseName) {
+  public Pauser(String namespace, String helmReleaseName) {
+    if (namespace == null) {
+      throw new IllegalArgumentException("namespace is required");
+    }
+
     if (helmReleaseName == null) {
       throw new IllegalArgumentException("helmReleaseName is required");
     }
-
-    namespace = namespace != null ? namespace : DEFAULT_NAMESPACE;
 
     try {
       Configuration.setDefaultApiClient(Config.defaultClient());
