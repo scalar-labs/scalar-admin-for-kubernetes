@@ -18,7 +18,15 @@ class TargetStatus {
     this.deploymentResourceVersion = deploymentResourceVersion;
   }
 
-  Boolean equals(TargetStatus another) {
+  @Override
+  public boolean equals(Object o) {
+
+    if (!(o instanceof TargetStatus)) {
+      return false;
+    }
+
+    TargetStatus another = (TargetStatus) o;
+
     return (podRestartCounts.equals(another.podRestartCounts)
         && podResourceVersions.equals(another.podResourceVersions)
         && deploymentResourceVersion.equals(another.deploymentResourceVersion));
