@@ -33,7 +33,7 @@ class TargetSelector {
     this.helmReleaseName = helmReleaseName;
   }
 
-  TargetSnapshot select() {
+  TargetSnapshot select() throws Exception {
     try {
       List<V1Pod> podsCreatedByHelmRelease =
           findPodsCreatedByHelmRelease(namespace, helmReleaseName);
@@ -54,11 +54,13 @@ class TargetSelector {
 
       return new TargetSnapshot(podsWithSameProduct.pods, deployment, adminPort);
     } catch (Exception e) {
-      throw new RuntimeException("Can not find any target pods. " + e.getMessage());
+      String m = String.format("Can not find any target pods.", e);
+      throw new Exception(m);
     }
   }
 
-  private List<V1Pod> findPodsCreatedByHelmRelease(String namespace, String releaseName) {
+  private List<V1Pod> findPodsCreatedByHelmRelease(String namespace, String releaseName)
+      throws Exception {
     V1PodList podList;
     try {
       podList =
@@ -78,21 +80,21 @@ class TargetSelector {
       String m =
           String.format(
               "Kubernetes API error when requesting listNamespacedPod. %s", e.getResponseBody());
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     List<V1Pod> pods = podList.getItems();
 
     if (pods.size() == 0) {
       String m = String.format("Helm release %s didn't create any pod.", releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     return pods;
   }
 
   private V1Deployment findDeploymentCreatedByHelmReleaseForProduct(
-      String namespace, String releaseName, Product product) {
+      String namespace, String releaseName, Product product) throws Exception {
     String labelSelector =
         String.format(
             "%s,%s",
@@ -108,14 +110,14 @@ class TargetSelector {
           String.format(
               "Kubernetes API error when requesting listNamespacedDeployment. %s",
               e.getResponseBody());
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     List<V1Deployment> deployments = deploymentList.getItems();
 
     if (deployments.size() == 0) {
       String m = String.format("Helm release %s didn't create any deployment.", releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     if (deployments.size() > 1) {
@@ -124,14 +126,14 @@ class TargetSelector {
               "Helm release %s created more than one deployment. Please make sure you deploy Scalar"
                   + " products with Scalar Helm Charts.",
               releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     return deployments.get(0);
   }
 
   private V1Service findServiceCreatedByHelmReleaseForProduct(
-      String namespace, String releaseName, Product product) {
+      String namespace, String releaseName, Product product) throws Exception {
     String labelSelector =
         String.format(
             "%s,%s",
@@ -147,14 +149,14 @@ class TargetSelector {
           String.format(
               "Kubernetes API error when requesting listNamespacedService. %s",
               e.getResponseBody());
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     List<V1Service> services = serviceList.getItems();
 
     if (services.size() == 0) {
       String m = String.format("Helm release %s didn't create any service.", releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     List<V1Service> servicesHaveScalarAdmin =
@@ -167,7 +169,7 @@ class TargetSelector {
           String.format(
               "Helm release %s didn't create any service that runs Scalar Admin interface.",
               releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     if (servicesHaveScalarAdmin.size() != 1) {
@@ -175,13 +177,13 @@ class TargetSelector {
           String.format(
               "Helm release %s create more than one service that run Scalar Admin interface.",
               releaseName);
-      throw new RuntimeException(m);
+      throw new Exception(m);
     }
 
     return servicesHaveScalarAdmin.get(0);
   }
 
-  private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) {
+  private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) throws Exception {
 
     List<V1Pod> selected = new ArrayList<V1Pod>();
     Product productThesePodsRun = Product.UNKNOWN;
@@ -195,7 +197,7 @@ class TargetSelector {
                 "A pod %s does not have the label: %s. Please deploy Scalar products with Scalar"
                     + " Helm Charts.",
                 pod.getMetadata().getName(), LABEL_APP);
-        throw new RuntimeException(m);
+        throw new Exception(m);
       }
 
       String appLabelValue = labels.get(LABEL_APP);
@@ -218,21 +220,20 @@ class TargetSelector {
                     + " Scalar Helm Charts.",
                 productThesePodsRun, productThisPodRuns);
 
-        throw new RuntimeException(m);
+        throw new Exception(m);
       }
 
       selected.add(pod);
     }
 
     if (productThesePodsRun == Product.UNKNOWN || selected.size() == 0) {
-      throw new RuntimeException(
-          "The pods created by the Helm release don't run any Scalar product.");
+      throw new Exception("The pods created by the Helm release don't run any Scalar product.");
     }
 
     return new PodsWithSameProduct(productThesePodsRun, selected);
   }
 
-  private Integer findAdminPortInService(V1Service service, String portName) {
+  private Integer findAdminPortInService(V1Service service, String portName) throws Exception {
     V1ServicePort servicePort =
         service.getSpec().getPorts().stream()
             .filter(p -> p.getName().equals(portName))
@@ -243,7 +244,7 @@ class TargetSelector {
                       String.format(
                           "Can not find the port %s in the service %s.",
                           portName, service.getMetadata().getName());
-                  return new RuntimeException(m);
+                  return new Exception(m);
                 });
 
     return servicePort.getTargetPort().getIntValue();

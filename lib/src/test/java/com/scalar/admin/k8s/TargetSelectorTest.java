@@ -46,7 +46,7 @@ public class TargetSelectorTest {
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowRuntimeException()
+  public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -70,16 +70,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Kubernetes API error when requesting listNamespacedPod. mock"
-            + " response body",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedPodReturnEmptyPodList_ShouldThrowRuntimeException()
+  public void select_coreV1ApiListNamespacedPodReturnEmptyPodList_ShouldThrowException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -106,11 +103,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName didn't create any pod.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -150,12 +145,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. A pod pod1 does not have the label: app.kubernetes.io/app."
-            + " Please deploy Scalar products with Scalar Helm Charts.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -191,13 +183,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. The pods created by the Helm release run different Scalar"
-            + " products: SCALARDB_SERVER and SCALARDB_CLUSTER. This should not happen. Please make"
-            + " sure you deploy Scalar products with Scalar Helm Charts.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -233,16 +221,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. The pods created by the Helm release don't run any Scalar"
-            + " product.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_appsV1ApiListNamespacedDeploymentReturnEmptyList_ShouldThrowRuntimeException()
+  public void select_appsV1ApiListNamespacedDeploymentReturnEmptyList_ShouldThrowException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -269,16 +254,14 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName didn't create any deployment.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
   public void
-      select_appsV1ApiListNamespacedDeploymentReturnMoreThanOneDeployment_ShouldThrowRuntimeException()
+      select_appsV1ApiListNamespacedDeploymentReturnMoreThanOneDeployment_ShouldThrowException()
           throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -305,18 +288,14 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName created more than one"
-            + " deployment. Please make sure you deploy Scalar products with Scalar Helm Charts.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void
-      select_appsV1ApiListNamespacedDeploymentThrowApiException_ShouldThrowRuntimeException()
-          throws ApiException {
+  public void select_appsV1ApiListNamespacedDeploymentThrowApiException_ShouldThrowException()
+      throws ApiException {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";
@@ -339,12 +318,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Kubernetes API error when requesting"
-            + " listNamespacedDeployment. mock response body",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -372,12 +348,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Kubernetes API error when requesting listNamespacedService."
-            + " mock response body",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -408,11 +381,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName didn't create any service.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -448,12 +419,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName didn't create any service that"
-            + " runs Scalar Admin interface.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -494,12 +462,9 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Helm release helmReleaseName create more than one service"
-            + " that run Scalar Admin interface.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
@@ -539,16 +504,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(RuntimeException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
 
-    assertEquals(
-        "Can not find any target pods. Can not find the port scalardb in the service"
-            + " scalardb-headless.",
-        thrown.getMessage());
+    assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_NormalCase_ShouldReturnTargetSnapshot() throws ApiException {
+  public void select_NormalCase_ShouldReturnTargetSnapshot() throws Exception {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";

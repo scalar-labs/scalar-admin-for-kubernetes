@@ -23,7 +23,7 @@ public class Pauser {
    * @param namespace The namespace where the pods are deployed.
    * @param helmReleaseName The Helm release name used to deploy the pods.
    */
-  public Pauser(String namespace, String helmReleaseName) {
+  public Pauser(String namespace, String helmReleaseName) throws Exception {
     if (namespace == null) {
       throw new IllegalArgumentException("namespace is required");
     }
@@ -35,7 +35,7 @@ public class Pauser {
     try {
       Configuration.setDefaultApiClient(Config.defaultClient());
     } catch (IOException e) {
-      throw new RuntimeException("Failed to set default Kubernetes client. " + e.getMessage());
+      throw new Exception("Failed to set default Kubernetes client.", e);
     }
 
     targetSelector =
