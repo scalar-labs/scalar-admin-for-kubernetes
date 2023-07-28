@@ -10,9 +10,9 @@ class TargetSnapshot {
 
   private final List<V1Pod> pods;
   private final V1Deployment deployment;
-  private final Integer adminPort;
+  private final int adminPort;
 
-  TargetSnapshot(List<V1Pod> pods, V1Deployment deployment, Integer adminPort) {
+  TargetSnapshot(List<V1Pod> pods, V1Deployment deployment, int adminPort) {
     this.pods = pods;
     this.deployment = deployment;
     this.adminPort = adminPort;
