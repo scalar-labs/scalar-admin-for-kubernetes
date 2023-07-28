@@ -54,7 +54,7 @@ public class Pauser {
     try {
       target = targetSelector.select();
     } catch (Exception e) {
-      throw new Exception("Failed to find the target pods to pause. {}", e);
+      throw new Exception("Failed to find the target pods to pause.", e);
     }
 
     RequestCoordinator coordinator =
