@@ -1,8 +1,11 @@
 subprojects {
     apply plugin: 'java'
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(8)
+        }
+    }
 
     group = "com.scalar-labs"
     project.version = "2.0.0-SNAPSHOT"
