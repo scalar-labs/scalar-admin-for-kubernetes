@@ -258,7 +258,7 @@ class TargetSelector {
     return servicePort.getTargetPort().getIntValue();
   }
 
-  private class PodsWithSameProduct {
+  private static class PodsWithSameProduct {
     private final Product product;
     private final List<V1Pod> pods;
 
