@@ -63,7 +63,7 @@ public class Pauser {
                 .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
                 .collect(Collectors.toList()));
 
-    coordinator.pause(true, 0L);
+    coordinator.pause(true, null);
 
     Instant startTime = Instant.now();
 
