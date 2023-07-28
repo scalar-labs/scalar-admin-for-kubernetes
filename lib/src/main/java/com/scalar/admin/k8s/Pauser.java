@@ -44,20 +44,18 @@ public class Pauser {
 
   /**
    * @param pauseDuration The duration to pause in seconds.
-   * @return 0 if the pause operation is successful. Otherwise, 1.
    */
-  public int pause(Integer pauseDuration) {
+  public void pause(Integer pauseDuration) throws Exception {
     if (pauseDuration == null || pauseDuration < 1) {
-      logger.error("pauseDuration is required and must be greater than 0 second.");
-      return 1;
+      throw new IllegalArgumentException(
+          "pauseDuration is required and must be greater than 0 second.");
     }
 
     TargetSnapshot target;
     try {
       target = targetSelector.select();
     } catch (Exception e) {
-      logger.error("Failed to find the target pods to pause. {}", e.getMessage());
-      return 1;
+      throw new Exception("Failed to find the target pods to pause. {}", e);
     }
 
     RequestCoordinator coordinator =
@@ -80,21 +78,17 @@ public class Pauser {
     try {
       targetAfterPause = targetSelector.select();
     } catch (Exception e) {
-      logger.error(
+      throw new Exception(
           "Failed to find the target pods to examine if the targets pods were updated during"
-              + " paused. {}",
-          e.getMessage());
-      return 1;
+              + " paused.",
+          e);
     }
 
     if (!target.getStatus().equals(targetAfterPause.getStatus())) {
-      logger.error("The target pods were updated during paused. Please retry.");
-      return 1;
+      throw new Exception("The target pods were updated during paused. Please retry.");
     }
 
     logger.info(
         "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
-
-    return 0;
   }
 }

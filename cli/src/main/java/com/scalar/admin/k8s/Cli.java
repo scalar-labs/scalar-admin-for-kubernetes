@@ -1,6 +1,8 @@
 package com.scalar.admin.k8s;
 
 import java.util.concurrent.Callable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -9,6 +11,8 @@ import picocli.CommandLine.Option;
     name = "scalar-admin-k8s-cli",
     description = "Scalar Admin pause tool for the Kubernetes environment")
 class Cli implements Callable<Integer> {
+
+  private final Logger logger = LoggerFactory.getLogger(Cli.class);
 
   @Option(
       names = {"--namespace", "-n"},
@@ -45,8 +49,14 @@ class Cli implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    Pauser pauser = new Pauser(namespace, helmReleaseName);
+    try {
+      Pauser pauser = new Pauser(namespace, helmReleaseName);
+      pauser.pause(pauseDuration);
+    } catch (Exception e) {
+      logger.error("Failed to pause Scalar products.", e);
+      return 1;
+    }
 
-    return pauser.pause(pauseDuration);
+    return 0;
   }
 }
