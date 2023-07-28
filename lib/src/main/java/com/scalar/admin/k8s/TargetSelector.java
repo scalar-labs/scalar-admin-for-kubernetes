@@ -247,6 +247,14 @@ class TargetSelector {
                   return new Exception(m);
                 });
 
+    if (!servicePort.getTargetPort().isInteger()) {
+      throw new Exception(
+          String.format(
+              "The service %s seems using the port definition %s in the TargetPort. This should not"
+                  + " happend. Please deploy Scalar products by Scalar Helm Charts.",
+              service.getMetadata().getName(), servicePort.getTargetPort().getStrValue()));
+    }
+
     return servicePort.getTargetPort().getIntValue();
   }
 

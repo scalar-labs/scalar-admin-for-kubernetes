@@ -510,6 +510,53 @@ public class TargetSelectorTest {
   }
 
   @Test
+  public void select_serviceUsesPortDefinitionInTargetPort_ShouldThrowException()
+      throws ApiException {
+    // Arrange
+    String namespace = "namespace";
+    String helmReleaseName = "helmReleaseName";
+
+    V1ObjectMeta metadata = new V1ObjectMeta();
+    metadata.setName("scalardb-headless");
+
+    V1ServicePort servicePort = new V1ServicePort();
+    servicePort.setName("scalardb");
+    servicePort.setTargetPort(new IntOrString("some-port"));
+
+    V1ServiceSpec serviceSpec = new V1ServiceSpec();
+    serviceSpec.setPorts(new ArrayList<>());
+
+    V1Service service = new V1Service();
+    service.setMetadata(metadata);
+    service.setSpec(serviceSpec);
+
+    V1ServiceList serviceList = new V1ServiceList();
+    serviceList.setItems(Arrays.asList(service));
+
+    when(coreV1Api.listNamespacedService(
+            "namespace",
+            null,
+            null,
+            null,
+            null,
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            null,
+            null,
+            null,
+            null,
+            null))
+        .thenReturn(serviceList);
+
+    // Act & Assert
+    TargetSelector targetSelector =
+        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+
+    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+
+    assertEquals("Can not find any target pods.", thrown.getMessage());
+  }
+
+  @Test
   public void select_NormalCase_ShouldReturnTargetSnapshot() throws Exception {
     // Arrange
     String namespace = "namespace";
