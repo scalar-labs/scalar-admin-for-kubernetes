@@ -45,10 +45,9 @@ public class Pauser {
   /**
    * @param pauseDuration The duration to pause in seconds.
    */
-  public void pause(Integer pauseDuration) throws Exception {
-    if (pauseDuration == null || pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration is required and must be greater than 0 second.");
+  public void pause(int pauseDuration) throws Exception {
+    if (pauseDuration < 1) {
+      throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
     }
 
     TargetSnapshot target;
