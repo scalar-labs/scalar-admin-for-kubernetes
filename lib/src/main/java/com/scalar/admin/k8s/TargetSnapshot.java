@@ -28,8 +28,8 @@ class TargetSnapshot {
 
   TargetStatus getStatus() {
 
-    Map<String, Integer> podRestartCounts = new HashMap<String, Integer>();
-    Map<String, String> podResourceVersions = new HashMap<String, String>();
+    Map<String, Integer> podRestartCounts = new HashMap<>();
+    Map<String, String> podResourceVersions = new HashMap<>();
 
     for (V1Pod pod : pods) {
       String podName = pod.getMetadata().getName();
