@@ -1,62 +1,26 @@
 package com.scalar.admin.k8s;
 
 enum Product {
-  SCALARDB_SERVER {
-    @Override
-    String getAppLabelValue() {
-      return "scalardb";
-    }
+  SCALARDB_SERVER("scalardb", "scalardb"),
+  SCALARDB_CLUSTER("scalardb-cluster", "scalardb-cluster"),
+  SCALARDL_LEDGER("ledger", "scalardl-admin"),
+  SCALARDL_AUDITOR("auditor", "scalardl-auditor-admin"),
+  UNKNOWN("", "");
 
-    @Override
-    String getAdminPortName() {
-      return "scalardb";
-    }
-  },
+  private final String appLabelValue;
+  private final String adminPortName;
 
-  SCALARDB_CLUSTER {
-    @Override
-    String getAppLabelValue() {
-      return "scalardb-cluster";
-    }
-
-    @Override
-    String getAdminPortName() {
-      return "scalardb-cluster";
-    }
-  },
-
-  SCALARDL_LEDGER {
-    @Override
-    String getAppLabelValue() {
-      return "ledger";
-    }
-
-    @Override
-    String getAdminPortName() {
-      return "scalardl-admin";
-    }
-  },
-
-  SCALARDL_AUDITOR {
-    @Override
-    String getAppLabelValue() {
-      return "auditor";
-    }
-
-    @Override
-    String getAdminPortName() {
-      return "scalardl-auditor-admin";
-    }
-  },
-
-  UNKNOWN;
+  private Product(String appLabelValue, String adminPortName) {
+    this.appLabelValue = appLabelValue;
+    this.adminPortName = adminPortName;
+  }
 
   String getAppLabelValue() {
-    return "";
+    return appLabelValue;
   }
 
   String getAdminPortName() {
-    return "";
+    return adminPortName;
   }
 
   static Product fromAppLabelValue(String appLabelValue) {
