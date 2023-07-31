@@ -54,8 +54,7 @@ class TargetSelector {
 
       return new TargetSnapshot(podsWithSameProduct.pods, deployment, adminPort);
     } catch (Exception e) {
-      String m = String.format("Can not find any target pods.", e);
-      throw new Exception(m);
+      throw new Exception("Can not find any target pods.", e);
     }
   }
 
