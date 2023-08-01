@@ -46,7 +46,7 @@ public class TargetSelectorTest {
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowException()
+  public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -70,13 +70,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedPodReturnEmptyPodList_ShouldThrowException()
+  public void select_coreV1ApiListNamespacedPodReturnEmptyPodList_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -103,13 +103,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_podsCreatedByHelmReleaseHaveNoAppLabelValues_ShouldThrowException()
+  public void select_podsCreatedByHelmReleaseHaveNoAppLabelValues_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -145,13 +145,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_podsCreatedByHelmReleaseRunTwoScalarProducts_ShouldThrowException()
+  public void select_podsCreatedByHelmReleaseRunTwoScalarProducts_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -183,13 +183,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_podsCreatedByHelmReleaseDontRunAnyScalarProduct_ShouldThrowException()
+  public void select_podsCreatedByHelmReleaseDontRunAnyScalarProduct_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -221,13 +221,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_appsV1ApiListNamespacedDeploymentReturnEmptyList_ShouldThrowException()
+  public void select_appsV1ApiListNamespacedDeploymentReturnEmptyList_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -254,14 +254,14 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
   public void
-      select_appsV1ApiListNamespacedDeploymentReturnMoreThanOneDeployment_ShouldThrowException()
+      select_appsV1ApiListNamespacedDeploymentReturnMoreThanOneDeployment_ShouldThrowPauserException()
           throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -288,13 +288,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_appsV1ApiListNamespacedDeploymentThrowApiException_ShouldThrowException()
+  public void select_appsV1ApiListNamespacedDeploymentThrowApiException_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -318,13 +318,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedServiceThrowApiException_ShouldThrowException()
+  public void select_coreV1ApiListNamespacedServiceThrowApiException_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -348,13 +348,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_coreV1ApiListNamespacedServiceReturnEmptyList_ShouldThrowException()
+  public void select_coreV1ApiListNamespacedServiceReturnEmptyList_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -381,13 +381,14 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_serviceCreatedNotRunScalarProduct_ShouldThrowException() throws ApiException {
+  public void select_serviceCreatedNotRunScalarProduct_ShouldThrowPauserException()
+      throws ApiException {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";
@@ -419,13 +420,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_servicesCreatedRunMoreThanOneScalarProduct_ShouldThrowException()
+  public void select_servicesCreatedRunMoreThanOneScalarProduct_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -462,13 +463,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_serviceDoesntHavePort_ShouldThrowException() throws ApiException {
+  public void select_serviceDoesntHavePort_ShouldThrowPauserException() throws ApiException {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";
@@ -504,13 +505,13 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_serviceUsesPortDefinitionInTargetPort_ShouldThrowException()
+  public void select_serviceUsesPortDefinitionInTargetPort_ShouldThrowPauserException()
       throws ApiException {
     // Arrange
     String namespace = "namespace";
@@ -551,7 +552,7 @@ public class TargetSelectorTest {
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
 
-    Throwable thrown = assertThrows(Exception.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }

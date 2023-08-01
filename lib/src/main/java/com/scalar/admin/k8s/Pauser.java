@@ -25,7 +25,7 @@ public class Pauser {
    * @param namespace The namespace where the pods are deployed.
    * @param helmReleaseName The Helm release name used to deploy the pods.
    */
-  public Pauser(String namespace, String helmReleaseName) throws Exception {
+  public Pauser(String namespace, String helmReleaseName) throws PauserException {
     if (namespace == null) {
       throw new IllegalArgumentException("namespace is required");
     }
@@ -37,7 +37,7 @@ public class Pauser {
     try {
       Configuration.setDefaultApiClient(Config.defaultClient());
     } catch (IOException e) {
-      throw new Exception("Failed to set default Kubernetes client.", e);
+      throw new PauserException("Failed to set default Kubernetes client.", e);
     }
 
     targetSelector =
@@ -47,7 +47,7 @@ public class Pauser {
   /**
    * @param pauseDuration The duration to pause in seconds.
    */
-  public void pause(int pauseDuration) throws Exception {
+  public void pause(int pauseDuration) throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
     }
@@ -56,7 +56,7 @@ public class Pauser {
     try {
       target = targetSelector.select();
     } catch (Exception e) {
-      throw new Exception("Failed to find the target pods to pause.", e);
+      throw new PauserException("Failed to find the target pods to pause.", e);
     }
 
     RequestCoordinator coordinator =
@@ -72,7 +72,7 @@ public class Pauser {
     try {
       Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
     } catch (Exception e) {
-      throw new Exception("Failed to sleep during pause.", e);
+      throw new PauserException("Failed to sleep during pause.", e);
     } finally {
       unpauseWithRetry(coordinator, UNPAUSE_RETRY_COUNT);
     }
@@ -85,28 +85,29 @@ public class Pauser {
     try {
       targetAfterPause = targetSelector.select();
     } catch (Exception e) {
-      throw new Exception(
+      throw new PauserException(
           "Failed to find the target pods to examine if the targets pods were updated during"
               + " paused.",
           e);
     }
 
     if (!target.getStatus().equals(targetAfterPause.getStatus())) {
-      throw new Exception("The target pods were updated during paused. Please retry.");
+      throw new PauserException("The target pods were updated during paused. Please retry.");
     }
 
     logger.info(
         "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
   }
 
-  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount) throws Exception {
+  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount)
+      throws PauserException {
     while (true) {
       try {
         coordinator.unpause();
         return;
       } catch (Exception e) {
         if (--retryCount == 0) {
-          throw new Exception("Failed to unpause.", e);
+          throw new PauserException("Failed to unpause.", e);
         }
       }
     }

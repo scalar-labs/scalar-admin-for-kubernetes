@@ -33,7 +33,7 @@ class TargetSelector {
     this.helmReleaseName = helmReleaseName;
   }
 
-  TargetSnapshot select() throws Exception {
+  TargetSnapshot select() throws PauserException {
     try {
       List<V1Pod> podsCreatedByHelmRelease =
           findPodsCreatedByHelmRelease(namespace, helmReleaseName);
@@ -54,12 +54,12 @@ class TargetSelector {
 
       return new TargetSnapshot(podsWithSameProduct.pods, deployment, adminPort);
     } catch (Exception e) {
-      throw new Exception("Can not find any target pods.", e);
+      throw new PauserException("Can not find any target pods.", e);
     }
   }
 
   private List<V1Pod> findPodsCreatedByHelmRelease(String namespace, String releaseName)
-      throws Exception {
+      throws PauserException {
     V1PodList podList;
     try {
       podList =
@@ -78,22 +78,23 @@ class TargetSelector {
     } catch (ApiException e) {
       String m =
           String.format(
-              "Kubernetes API error when requesting listNamespacedPod. %s", e.getResponseBody());
-      throw new Exception(m);
+              "Kubernetes listNamespacedPod API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m);
     }
 
     List<V1Pod> pods = podList.getItems();
 
     if (pods.size() == 0) {
       String m = String.format("Helm release %s didn't create any pod.", releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     return pods;
   }
 
   private V1Deployment findDeploymentCreatedByHelmReleaseForProduct(
-      String namespace, String releaseName, Product product) throws Exception {
+      String namespace, String releaseName, Product product) throws PauserException {
     String labelSelector =
         String.format(
             "%s,%s",
@@ -107,16 +108,16 @@ class TargetSelector {
     } catch (ApiException e) {
       String m =
           String.format(
-              "Kubernetes API error when requesting listNamespacedDeployment. %s",
-              e.getResponseBody());
-      throw new Exception(m);
+              "Kubernetes listNamespacedDeployment API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
     }
 
     List<V1Deployment> deployments = deploymentList.getItems();
 
     if (deployments.size() == 0) {
       String m = String.format("Helm release %s didn't create any deployment.", releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     if (deployments.size() > 1) {
@@ -125,14 +126,14 @@ class TargetSelector {
               "Helm release %s created more than one deployment. Please make sure you deploy Scalar"
                   + " products with Scalar Helm Charts.",
               releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     return deployments.get(0);
   }
 
   private V1Service findServiceCreatedByHelmReleaseForProduct(
-      String namespace, String releaseName, Product product) throws Exception {
+      String namespace, String releaseName, Product product) throws PauserException {
     String labelSelector =
         String.format(
             "%s,%s",
@@ -146,16 +147,16 @@ class TargetSelector {
     } catch (ApiException e) {
       String m =
           String.format(
-              "Kubernetes API error when requesting listNamespacedService. %s",
-              e.getResponseBody());
-      throw new Exception(m);
+              "Kubernetes listNamespacedService API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
     }
 
     List<V1Service> services = serviceList.getItems();
 
     if (services.size() == 0) {
       String m = String.format("Helm release %s didn't create any service.", releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     List<V1Service> servicesHaveScalarAdmin =
@@ -168,7 +169,7 @@ class TargetSelector {
           String.format(
               "Helm release %s didn't create any service that runs Scalar Admin interface.",
               releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     if (servicesHaveScalarAdmin.size() != 1) {
@@ -176,7 +177,7 @@ class TargetSelector {
           String.format(
               "Helm release %s create more than one service that run Scalar Admin interface.",
               releaseName);
-      throw new Exception(m);
+      throw new PauserException(m);
     }
 
     return servicesHaveScalarAdmin.get(0);
@@ -188,7 +189,7 @@ class TargetSelector {
    * used depends on the first pod having the value of Scalar products. The other pods, for example,
    * an Envoy pod, will be excluded. An exception is thrown if there are pods of different products.
    */
-  private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) throws Exception {
+  private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) throws PauserException {
 
     List<V1Pod> selected = new ArrayList<V1Pod>();
     Product productThesePodsRun = Product.UNKNOWN;
@@ -202,7 +203,7 @@ class TargetSelector {
                 "A pod %s does not have the label: %s. Please deploy Scalar products with Scalar"
                     + " Helm Charts.",
                 pod.getMetadata().getName(), LABEL_APP);
-        throw new Exception(m);
+        throw new PauserException(m);
       }
 
       String appLabelValue = labels.get(LABEL_APP);
@@ -227,20 +228,22 @@ class TargetSelector {
                     + " Scalar Helm Charts.",
                 productThesePodsRun, productThisPodRuns);
 
-        throw new Exception(m);
+        throw new PauserException(m);
       }
 
       selected.add(pod);
     }
 
     if (productThesePodsRun == Product.UNKNOWN || selected.size() == 0) {
-      throw new Exception("The pods created by the Helm release don't run any Scalar product.");
+      throw new PauserException(
+          "The pods created by the Helm release don't run any Scalar product.");
     }
 
     return new PodsWithSameProduct(productThesePodsRun, selected);
   }
 
-  private Integer findAdminPortInService(V1Service service, String portName) throws Exception {
+  private Integer findAdminPortInService(V1Service service, String portName)
+      throws PauserException {
     V1ServicePort servicePort =
         service.getSpec().getPorts().stream()
             .filter(p -> p.getName().equals(portName))
@@ -251,11 +254,11 @@ class TargetSelector {
                       String.format(
                           "Can not find the port %s in the service %s.",
                           portName, service.getMetadata().getName());
-                  return new Exception(m);
+                  return new PauserException(m);
                 });
 
     if (!servicePort.getTargetPort().isInteger()) {
-      throw new Exception(
+      throw new PauserException(
           String.format(
               "The service %s seems using the port definition %s in the TargetPort. This should not"
                   + " happen. Please deploy Scalar products by Scalar Helm Charts.",

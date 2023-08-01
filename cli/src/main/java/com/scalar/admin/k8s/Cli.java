@@ -52,7 +52,7 @@ class Cli implements Callable<Integer> {
     try {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
       pauser.pause(pauseDuration);
-    } catch (Exception e) {
+    } catch (PauserException e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
     }
