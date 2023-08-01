@@ -182,6 +182,12 @@ class TargetSelector {
     return servicesHaveScalarAdmin.get(0);
   }
 
+  /**
+   * This method filters the givens pods and returns a list of pods of the same Scalar product
+   * (i.e., having the same app.kubernetes.io/app value). What value of app.kubernetes.io/app is
+   * used depends on the first pod having the value of Scalar products. The other pods, for example,
+   * an Envoy pod, will be excluded. An exception is thrown if there are pods of different products.
+   */
   private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) throws Exception {
 
     List<V1Pod> selected = new ArrayList<V1Pod>();
@@ -202,10 +208,12 @@ class TargetSelector {
       String appLabelValue = labels.get(LABEL_APP);
       Product productThisPodRuns = Product.fromAppLabelValue(appLabelValue);
 
+      // If the pod doesn't run any Scalar product, e.g, an Envoy pod, we exclude it.
       if (productThisPodRuns == Product.UNKNOWN) {
         continue;
       }
 
+      // If this is the first pod, we use its product as the product of all pods.
       if (productThesePodsRun == Product.UNKNOWN) {
         productThesePodsRun = productThisPodRuns;
       }
