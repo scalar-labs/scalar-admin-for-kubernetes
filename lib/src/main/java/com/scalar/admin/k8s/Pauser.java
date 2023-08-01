@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 public class Pauser {
 
+  private final int UNPAUSE_RETRY_COUNT = 3;
+
   private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
 
@@ -67,11 +69,17 @@ public class Pauser {
 
     Instant startTime = Instant.now();
 
-    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
+    try {
+      Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      throw new Exception("Failed to sleep during pause.", e);
+    } finally {
+      unpauseWithRetry(coordinator, UNPAUSE_RETRY_COUNT);
+    }
 
     Instant endTime = Instant.now();
 
-    coordinator.unpause();
+    unpauseWithRetry(coordinator, pauseDuration);
 
     TargetSnapshot targetAfterPause;
     try {
@@ -89,5 +97,18 @@ public class Pauser {
 
     logger.info(
         "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
+  }
+
+  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount) throws Exception {
+    while (true) {
+      try {
+        coordinator.unpause();
+        return;
+      } catch (Exception e) {
+        if (--retryCount == 0) {
+          throw new Exception("Failed to unpause.", e);
+        }
+      }
+    }
   }
 }
