@@ -55,9 +55,9 @@ jobs:
       - name: Copy Shadow Jar to tester Pod
         run: |
           kubectl wait --for=condition=Ready pod/java8
-          kubectl cp cli/build/libs/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar java8:/tmp
+          kubectl cp cli/build/libs/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar java8:/tmp
 
       - name: Run Shadow Jar
         run: |
-          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl
-          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-2.0.0-SNAPSHOT.jar -r scalardl-auditor
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar -r scalardl
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar -r scalardl-auditor
