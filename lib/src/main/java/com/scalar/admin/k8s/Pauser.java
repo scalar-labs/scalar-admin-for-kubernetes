@@ -79,7 +79,7 @@ public class Pauser {
 
     Instant endTime = Instant.now();
 
-    unpauseWithRetry(coordinator, pauseDuration);
+    unpauseWithRetry(coordinator, UNPAUSE_RETRY_COUNT);
 
     TargetSnapshot targetAfterPause;
     try {
@@ -99,15 +99,16 @@ public class Pauser {
         "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
   }
 
-  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount)
-      throws PauserException {
+  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount) {
     while (true) {
       try {
         coordinator.unpause();
         return;
       } catch (Exception e) {
         if (--retryCount == 0) {
-          throw new PauserException("Failed to unpause.", e);
+          logger.warn(
+              "Failed to unpause Scalar product. They are still in paused. The related pods will be"
+                  + " restarted by Kubernetes later.");
         }
       }
     }
