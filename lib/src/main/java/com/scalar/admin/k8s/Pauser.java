@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class Pauser {
 
-  private final int UNPAUSE_RETRY_COUNT = 3;
+  private static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
   private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
@@ -74,12 +74,12 @@ public class Pauser {
     } catch (Exception e) {
       throw new PauserException("Failed to sleep during pause.", e);
     } finally {
-      unpauseWithRetry(coordinator, UNPAUSE_RETRY_COUNT);
+      unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT);
     }
 
     Instant endTime = Instant.now();
 
-    unpauseWithRetry(coordinator, UNPAUSE_RETRY_COUNT);
+    unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT);
 
     TargetSnapshot targetAfterPause;
     try {
@@ -99,13 +99,15 @@ public class Pauser {
         "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
   }
 
-  private void unpauseWithRetry(RequestCoordinator coordinator, int retryCount) {
+  private void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount) {
+    int retryCounter = 0;
+
     while (true) {
       try {
         coordinator.unpause();
         return;
       } catch (Exception e) {
-        if (--retryCount == 0) {
+        if (++retryCounter >= maxRetryCount) {
           logger.warn(
               "Failed to unpause Scalar product. They are still in paused. The related pods will be"
                   + " restarted by Kubernetes later.");
