@@ -14,6 +14,18 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class implements a pause operation for Scalar product pods in a Kubernetes cluster. The
+ * pause operation consists of the following steps:
+ *
+ * <ol>
+ *   <li>Find the target pods to pause.
+ *   <li>Pause the target pods.
+ *   <li>Wait for the specified duration.
+ *   <li>Unpause the target pods.
+ *   <li>Check if the target pods were updated during the pause operation.
+ * </ol>
+ */
 public class Pauser {
 
   private static final int MAX_UNPAUSE_RETRY_COUNT = 3;
