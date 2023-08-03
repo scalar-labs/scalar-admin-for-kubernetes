@@ -105,6 +105,7 @@ public class Pauser {
           logger.warn(
               "Failed to unpause Scalar product. They are still in paused. The related pods will be"
                   + " restarted by Kubernetes later.");
+          return;
         }
       }
     }
