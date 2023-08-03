@@ -69,13 +69,7 @@ public class Pauser {
 
     Instant startTime = Instant.now();
 
-    try {
-      Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
-    } catch (Exception e) {
-      throw new PauserException("Failed to sleep during pause.", e);
-    } finally {
-      unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT);
-    }
+    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
 
     Instant endTime = Instant.now();
 
