@@ -26,6 +26,10 @@ class TargetSnapshot {
     return adminPort;
   }
 
+  V1Deployment getDeployment() {
+    return deployment;
+  }
+
   TargetStatus getStatus() {
 
     Map<String, Integer> podRestartCounts = new HashMap<>();

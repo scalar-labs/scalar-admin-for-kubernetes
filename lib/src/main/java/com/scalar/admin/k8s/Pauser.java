@@ -86,7 +86,7 @@ public class Pauser {
 
     Instant endTime = Instant.now();
 
-    unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT);
+    unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
 
     TargetSnapshot targetAfterPause;
     try {
@@ -105,7 +105,8 @@ public class Pauser {
     return new PausedDuration(startTime, endTime);
   }
 
-  private void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount) {
+  private void unpauseWithRetry(
+      RequestCoordinator coordinator, int maxRetryCount, TargetSnapshot target) {
     int retryCounter = 0;
 
     while (true) {
@@ -115,8 +116,10 @@ public class Pauser {
       } catch (Exception e) {
         if (++retryCounter >= maxRetryCount) {
           logger.warn(
-              "Failed to unpause Scalar product. They are still in paused. The related pods will be"
-                  + " restarted by Kubernetes later.");
+              "Failed to unpause Scalar product. They are still in paused. You must restart related"
+                  + " pods by using the `kubectl rollout restart deployment {}`"
+                  + " command to unpase all pods.",
+              target.getDeployment().getMetadata().getName());
           return;
         }
       }

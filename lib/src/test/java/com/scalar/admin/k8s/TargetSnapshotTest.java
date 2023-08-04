@@ -30,6 +30,20 @@ public class TargetSnapshotTest {
   }
 
   @Test
+  public void getDeployment_ShouldReturnCorrectDeployment() {
+    // Arrange
+    V1Pod pod = mockPod("pod", "podResourceVersion", 1);
+    V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+    TargetSnapshot snapshot = new TargetSnapshot(Arrays.asList(pod), deployment, 8080);
+
+    // Act
+    V1Deployment got = snapshot.getDeployment();
+
+    // Assert
+    assertEquals(deployment, got);
+  }
+
+  @Test
   void getAdminPort_ShouldReturnCorrectAdminPort() {
     // Arrange
     V1Pod pod = mockPod("pod", "podResourceVersion", 1);
