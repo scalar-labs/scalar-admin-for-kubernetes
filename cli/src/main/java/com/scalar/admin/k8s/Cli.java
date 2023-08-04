@@ -54,7 +54,7 @@ class Cli implements Callable<Integer> {
       PausedDuration duration = pauser.pause(pauseDuration);
 
       logger.info(
-          "Paused successfully. Duration: from {} to {}.",
+          "Paused successfully. Duration: from {} to {} (UTC).",
           duration.getStartTime().toString(),
           duration.getEndTime().toString());
     } catch (PauserException e) {
