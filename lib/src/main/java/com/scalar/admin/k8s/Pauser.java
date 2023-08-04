@@ -58,8 +58,9 @@ public class Pauser {
 
   /**
    * @param pauseDuration The duration to pause in seconds.
+   * @return The start and end time of the pause operation.
    */
-  public void pause(int pauseDuration) throws PauserException {
+  public PausedDuration pause(int pauseDuration) throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
     }
@@ -101,8 +102,7 @@ public class Pauser {
       throw new PauserException("The target pods were updated during paused. Please retry.");
     }
 
-    logger.info(
-        "Paused successfully. Duration: from {} to {}.", startTime.toString(), endTime.toString());
+    return new PausedDuration(startTime, endTime);
   }
 
   private void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount) {
