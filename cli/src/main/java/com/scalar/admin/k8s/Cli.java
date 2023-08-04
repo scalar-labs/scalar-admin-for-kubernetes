@@ -31,8 +31,8 @@ class Cli implements Callable<Integer> {
 
   @Option(
       names = {"--pause-duration", "-d"},
-      description = "The duration of the pause period by second. 10 by default.",
-      defaultValue = "10")
+      description = "The duration of the pause period by second. 5 by default.",
+      defaultValue = "5")
   private Integer pauseDuration;
 
   @Option(
