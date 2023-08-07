@@ -8,6 +8,21 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
+
+    env:
+      HELM_VERSION: v3.12.2
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.CR_PAT }}
+      DOCKER_REGISTRY_USERNAME: scalar-git
+      DOCKER_REGISTRY_SERVER: ghcr.io
+
+    strategy:
+      matrix:
+        productName:
+          - scalardb
+          - scalardb-cluster
+          - scalardl
+          - scalardl-audit
+
     steps:
       - uses: actions/setup-java@v3
         with:
@@ -20,34 +35,33 @@ jobs:
         with:
           cluster_name: kind
 
-      - uses: docker/login-action@v2
+      - name: Set up helm command
+        uses: azure/setup-helm@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
+          version: ${{ env.HELM_VERSION }}
 
-      - name: Find latest version for ScalarDL
-        id: version
+      - name: Add Helm repository
         run: |
-          sudo apt-get install jq
-          GHRC_TOKEN=`echo ${{ secrets.CR_PAT }} | base64`
-          SCALARDL_LATEST_VERSION=`curl -s -H "Authorization: Bearer $GHRC_TOKEN" https://ghcr.io/v2/scalar-labs/scalar-ledger/tags/list | jq .tags[] | sort -Vr | head -n1 | tr -d '"v'`
-          echo "scalardl_latest_version=${SCALARDL_LATEST_VERSION}" >> $GITHUB_OUTPUT
+          helm repo add scalar https://scalar-labs.github.io/helm-charts
 
-      - name: Load ScalarDL Ledger image to Kind
+      - name: Create secret resource for ScalarDL Auditor
+        if: ${{ matrix.productName == 'scalardl-audit' }}
         run: |
-          export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
-          docker pull ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION
-          docker pull ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION
-          kind load docker-image ghcr.io/scalar-labs/scalar-ledger:$SCALARDL_LATEST_VERSION -n kind
-          kind load docker-image ghcr.io/scalar-labs/scalar-auditor:$SCALARDL_LATEST_VERSION -n kind
+          kubectl create secret generic auditor-keys --from-file=certificate=.github/keys-and-certs/auditor-cert.pem --from-file=private-key=.github/keys-and-certs/auditor-key.pem
 
-      - name: Deploy ScalarDL Ledger to Kind
+      - name: Deploy Scalar products to Kind
         run: |
-          export SCALARDL_LATEST_VERSION=${{ steps.version.outputs.scalardl_latest_version }}
-          envsubst < .github/k8s-resources-for-e2e.yaml | kubectl apply -f -
-          kubectl wait --for=condition=Available deployment/scalardl-ledger
-          kubectl wait --for=condition=Available deployment/scalardl-auditor
+          helm install foo scalar-labs/${{ matrix.productName }} -f .github/manifests/${{ matrix.productName }}.yaml
+
+      - name: Wait for ScalarDB Cluster is started
+        if: ${{ matrix.productName == 'scalardb-cluster' }}
+        run: |
+          kubectl wait --for=condition=Available deployment/foo-${{ matrix.productName }}-node
+
+      - name: Wait for Scalar products are started
+        if: ${{ matrix.productName != 'scalardb-cluster' }}
+        run: |
+          kubectl wait --for=condition=Available deployment/foo-${{ matrix.productName }}
 
       - name: Build Shadow Jar
         run: ./gradlew shadowJar
@@ -59,5 +73,4 @@ jobs:
 
       - name: Run Shadow Jar
         run: |
-          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar -r scalardl
-          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar -r scalardl-auditor
+          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-k8s-cli-1.0.0-SNAPSHOT.jar -r foo
