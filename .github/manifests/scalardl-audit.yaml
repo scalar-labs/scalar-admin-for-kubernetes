@@ -7,3 +7,6 @@ auditor:
     scalar.dl.auditor.cert_holder_id=auditor
     scalar.dl.auditor.cert_path=/keys/certificate
     scalar.dl.auditor.private_key_path=/keys/private-key
+
+envoy:
+  enabled: false

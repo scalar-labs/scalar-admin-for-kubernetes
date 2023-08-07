@@ -4,3 +4,6 @@ scalardb:
     scalar.db.contact_points=jdbc:postgresql://dummy.default.svc.cluster.local:5432/postgres
     scalar.db.username=postgres
     scalar.db.password=postgres
+
+envoy:
+  enabled: false
