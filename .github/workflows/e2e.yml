@@ -42,6 +42,10 @@ jobs:
         run: |
           helm repo add scalar-labs https://scalar-labs.github.io/helm-charts
 
+      - name: Create secret resource to pull the containers from GitHub Packages
+        run: |
+          kubectl create secret docker-registry reg-docker-secrets --docker-server=${DOCKER_REGISTRY_SERVER} --docker-username=${DOCKER_REGISTRY_USERNAME} --docker-password=${DOCKER_REGISTRY_PASSWORD}
+
       - name: Create secret resource for ScalarDL Auditor
         if: ${{ matrix.productName == 'scalardl-audit' }}
         run: |
