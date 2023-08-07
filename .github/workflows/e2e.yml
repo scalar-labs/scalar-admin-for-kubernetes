@@ -2,6 +2,8 @@ name: Run the end-to-end test
 
 on:
   pull_request:
+    branches:
+      - main
 
 jobs:
   e2e:
