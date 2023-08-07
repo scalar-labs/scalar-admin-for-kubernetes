@@ -40,7 +40,7 @@ jobs:
 
       - name: Add Helm repository
         run: |
-          helm repo add scalar https://scalar-labs.github.io/helm-charts
+          helm repo add scalar-labs https://scalar-labs.github.io/helm-charts
 
       - name: Create secret resource for ScalarDL Auditor
         if: ${{ matrix.productName == 'scalardl-audit' }}
