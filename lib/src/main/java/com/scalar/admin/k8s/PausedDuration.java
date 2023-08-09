@@ -2,6 +2,7 @@ package com.scalar.admin.k8s;
 
 import java.time.Instant;
 
+@Immutable
 public class PausedDuration {
 
   private final Instant startTime;
