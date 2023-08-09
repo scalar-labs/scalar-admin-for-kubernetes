@@ -1,6 +1,7 @@
 package com.scalar.admin.k8s;
 
 import java.time.Instant;
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class PausedDuration {
