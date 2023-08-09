@@ -53,10 +53,9 @@ class Cli implements Callable<Integer> {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
       PausedDuration duration = pauser.pause(pauseDuration);
 
-      logger.info(
-          "Paused successfully. Duration: from {} to {} (UTC).",
-          duration.getStartTime().toString(),
-          duration.getEndTime().toString());
+      System.out.printf(
+          "Paused successfully. Duration: from %s to %s (UTC).\n",
+          duration.getStartTime().toString(), duration.getEndTime().toString());
     } catch (PauserException e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
