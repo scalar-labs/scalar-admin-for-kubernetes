@@ -1,0 +1,19 @@
+dependencies {
+    implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "com.scalar-labs:scalar-admin:${scalarAdminVersion}"
+    implementation "org.slf4j:slf4j-simple:${slf4jVersion}"
+    implementation(group: 'io.kubernetes', name: 'client-java', version: "${kubernetesClientVersion}") {
+        exclude group: 'org.slf4j'
+    }
+
+    testImplementation(platform("org.junit:junit-bom:${junitVersion}"))
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
