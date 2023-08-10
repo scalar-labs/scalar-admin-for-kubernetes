@@ -58,9 +58,11 @@ public class Pauser {
 
   /**
    * @param pauseDuration The duration to pause in seconds.
+   * @param maxPauseWaitTime The max waiting time in seconds to wait the target to drain the
+   *     requests before pausing.
    * @return The start and end time of the pause operation.
    */
-  public PausedDuration pause(int pauseDuration) throws PauserException {
+  public PausedDuration pause(int pauseDuration, Long maxPauseWaitTime) throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
     }
@@ -78,7 +80,7 @@ public class Pauser {
                 .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
                 .collect(Collectors.toList()));
 
-    coordinator.pause(true, null);
+    coordinator.pause(true, maxPauseWaitTime);
 
     Instant startTime = Instant.now();
 

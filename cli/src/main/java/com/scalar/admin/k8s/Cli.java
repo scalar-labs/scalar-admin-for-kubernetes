@@ -36,6 +36,14 @@ class Cli implements Callable<Integer> {
   private Integer pauseDuration;
 
   @Option(
+      names = {"--max-pause-wait-time", "-w"},
+      description =
+          "The max time (in seconds) to wait until Scalar products finish the requests before"
+              + " pausing. If specify null, the max waiting time will be the default value defined"
+              + " in the products respectively. null by default.")
+  private Long maxPauseWaitTime;
+
+  @Option(
       names = {"-h", "--help"},
       usageHelp = true,
       description = "Display the help message.")
@@ -51,7 +59,7 @@ class Cli implements Callable<Integer> {
   public Integer call() {
     try {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
-      PausedDuration duration = pauser.pause(pauseDuration);
+      PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
       System.out.printf(
           "Paused successfully. Duration: from %s to %s (UTC).\n",
