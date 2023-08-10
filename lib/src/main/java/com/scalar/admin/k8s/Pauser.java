@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,11 @@ import org.slf4j.LoggerFactory;
  *   <li>Unpause the target pods.
  *   <li>Check if the target pods were updated during the pause operation.
  * </ol>
+ *
+ * Please note that this class is not a thread-safe class because the `pause` method makes
+ * side-effects (to pause) to the target pods.
  */
+@NotThreadSafe
 public class Pauser {
 
   private static final int MAX_UNPAUSE_RETRY_COUNT = 3;
