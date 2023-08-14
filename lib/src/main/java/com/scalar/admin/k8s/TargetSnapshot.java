@@ -5,7 +5,9 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 class TargetSnapshot {
 
   private final List<V1Pod> pods;

@@ -2,7 +2,9 @@ package com.scalar.admin.k8s;
 
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 class TargetStatus {
 
   private final Map<String, Integer> podRestartCounts;
