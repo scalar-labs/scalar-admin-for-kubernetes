@@ -1,8 +1,11 @@
 package com.scalar.admin.k8s;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 class TargetStatus {
 
   private final Map<String, Integer> podRestartCounts;
@@ -13,8 +16,8 @@ class TargetStatus {
       Map<String, Integer> podRestartCounts,
       Map<String, String> podResourceVersions,
       String deploymentResourceVersion) {
-    this.podRestartCounts = podRestartCounts;
-    this.podResourceVersions = podResourceVersions;
+    this.podRestartCounts = ImmutableMap.copyOf(podRestartCounts);
+    this.podResourceVersions = ImmutableMap.copyOf(podResourceVersions);
     this.deploymentResourceVersion = deploymentResourceVersion;
   }
 

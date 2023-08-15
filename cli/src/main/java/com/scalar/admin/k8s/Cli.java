@@ -1,5 +1,6 @@
 package com.scalar.admin.k8s;
 
+import java.time.ZoneId;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -47,6 +48,15 @@ class Cli implements Callable<Integer> {
   private Long maxPauseWaitTime;
 
   @Option(
+      names = {"--time-zone", "-z"},
+      description =
+          "Specify a time zone ID, e.g., Asia/Tokyo, to output successful paused"
+              + " period. Note the time zone ID is case sensitive. Etc/UTC by default.",
+      converter = ZoneIdConverter.class,
+      defaultValue = "Etc/UTC")
+  private ZoneId zoneId;
+
+  @Option(
       names = {"-h", "--help"},
       usageHelp = true,
       description = "Display the help message.")
@@ -65,8 +75,10 @@ class Cli implements Callable<Integer> {
       PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
       System.out.printf(
-          "Paused successfully. Duration: from %s to %s (UTC).\n",
-          duration.getStartTime().toString(), duration.getEndTime().toString());
+          "Paused successfully. Duration: from %s to %s (%s).\n",
+          duration.getStartTime().atZone(zoneId).toLocalDateTime(),
+          duration.getEndTime().atZone(zoneId).toLocalDateTime(),
+          zoneId.toString());
     } catch (PauserException e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
