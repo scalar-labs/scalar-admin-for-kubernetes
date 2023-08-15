@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
  *   <li>Check if the target pods were updated during the pause operation.
  * </ol>
  *
- * Please note that this class is not a thread-safe class because the `pause` method makes
- * side-effects (to pause) to the target pods.
+ * Please note that this class is not thread-safe because the `pause` method causes side effects in
+ * the states of target pods.
  */
 @NotThreadSafe
 public class Pauser {
