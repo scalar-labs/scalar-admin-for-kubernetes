@@ -14,7 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 class TargetSelector {
 
   static final String LABEL_INSTANCE = "app.kubernetes.io/instance";

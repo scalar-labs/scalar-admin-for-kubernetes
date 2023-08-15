@@ -1,11 +1,14 @@
 package com.scalar.admin.k8s;
 
+import com.google.common.collect.ImmutableList;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.concurrent.Immutable;
 
+@Immutable
 class TargetSnapshot {
 
   private final List<V1Pod> pods;
@@ -13,7 +16,7 @@ class TargetSnapshot {
   private final int adminPort;
 
   TargetSnapshot(List<V1Pod> pods, V1Deployment deployment, int adminPort) {
-    this.pods = pods;
+    this.pods = ImmutableList.copyOf(pods);
     this.deployment = deployment;
     this.adminPort = adminPort;
   }
