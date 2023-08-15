@@ -40,10 +40,10 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--max-pause-wait-time", "-w"},
       description =
-          "The max time (in seconds) to wait until Scalar products finish the requests before"
-              + " pausing. If omit this option, the max waiting time will be the default value"
-              + " defined in the products respectively. Most of Scalar products have the default"
-              + " value of 30 seconds.")
+          "The max wait time (in milliseconds) until Scalar products drain outstanding requests"
+              + " before they pause. If omitting this option, the max wait time will be the default"
+              + " value defined in the products. Most Scalar products have the default value of 30"
+              + " seconds.")
   @Nullable
   private Long maxPauseWaitTime;
 
