@@ -1,6 +1,7 @@
 package com.scalar.admin.k8s;
 
 import java.util.concurrent.Callable;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -41,6 +42,7 @@ class Cli implements Callable<Integer> {
           "The max time (in seconds) to wait until Scalar products finish the requests before"
               + " pausing. If specify null, the max waiting time will be the default value defined"
               + " in the products respectively. null by default.")
+  @Nullable
   private Long maxPauseWaitTime;
 
   @Option(

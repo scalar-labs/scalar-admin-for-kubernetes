@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,8 @@ public class Pauser {
    *     requests before pausing.
    * @return The start and end time of the pause operation.
    */
-  public PausedDuration pause(int pauseDuration, Long maxPauseWaitTime) throws PauserException {
+  public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
+      throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
     }
