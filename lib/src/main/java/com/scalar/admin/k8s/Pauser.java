@@ -64,8 +64,8 @@ public class Pauser {
 
   /**
    * @param pauseDuration The duration to pause in seconds.
-   * @param maxPauseWaitTime The max waiting time in seconds to wait the target to drain the
-   *     requests before pausing.
+   * @param maxPauseWaitTime The max wait time (in milliseconds) until Scalar products drain
+   *     outstanding requests before they pause.
    * @return The start and end time of the pause operation.
    */
   public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
