@@ -63,7 +63,7 @@ public class Pauser {
   }
 
   /**
-   * @param pauseDuration The duration to pause in seconds.
+   * @param pauseDuration The duration to pause in milliseconds.
    * @param maxPauseWaitTime The max wait time (in milliseconds) until Scalar products drain
    *     outstanding requests before they pause.
    * @return The start and end time of the pause operation.
@@ -71,7 +71,8 @@ public class Pauser {
   public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
       throws PauserException {
     if (pauseDuration < 1) {
-      throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
+      throw new IllegalArgumentException(
+          "pauseDuration is required to be greater than 0 millisecond.");
     }
 
     TargetSnapshot target;
@@ -91,7 +92,7 @@ public class Pauser {
 
     Instant startTime = Instant.now();
 
-    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
+    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
 
     Instant endTime = Instant.now();
 
