@@ -25,6 +25,6 @@ subprojects {
     }
 
     dependencies {
-        implementation group: 'org.slf4j', name: 'slf4j-api', version: "${slf4jVersion}"
+        implementation "org.slf4j:slf4j-api:${slf4jVersion}"
     }
 }
