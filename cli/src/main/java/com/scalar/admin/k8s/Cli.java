@@ -32,7 +32,7 @@ class Cli implements Callable<Integer> {
 
   @Option(
       names = {"--pause-duration", "-d"},
-      description = "The duration of the pause period by millisecond. 5000 by default.",
+      description = "The duration of the pause period by millisecond. 5000 (5 seconds) by default.",
       defaultValue = "5000")
   private Integer pauseDuration;
 
