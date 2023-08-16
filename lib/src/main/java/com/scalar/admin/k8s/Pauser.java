@@ -62,12 +62,13 @@ public class Pauser {
   }
 
   /**
-   * @param pauseDuration The duration to pause in seconds.
+   * @param pauseDuration The duration to pause in milliseconds.
    * @return The start and end time of the pause operation.
    */
   public PausedDuration pause(int pauseDuration) throws PauserException {
     if (pauseDuration < 1) {
-      throw new IllegalArgumentException("pauseDuration is required to be greater than 0 second.");
+      throw new IllegalArgumentException(
+          "pauseDuration is required to be greater than 0 millisecond.");
     }
 
     TargetSnapshot target;
@@ -87,7 +88,7 @@ public class Pauser {
 
     Instant startTime = Instant.now();
 
-    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.SECONDS);
+    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
 
     Instant endTime = Instant.now();
 
