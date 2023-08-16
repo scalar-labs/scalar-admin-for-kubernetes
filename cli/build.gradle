@@ -5,6 +5,7 @@ plugins {
 dependencies {
    implementation project(':lib')
    implementation "info.picocli:picocli:${picocliVersion}"
+   implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
 }
 
 shadowJar {
