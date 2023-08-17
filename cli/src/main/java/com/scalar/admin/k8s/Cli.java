@@ -82,7 +82,7 @@ class Cli implements Callable<Integer> {
               .put("timezone", zoneId.toString());
 
       System.out.println(node.toString());
-    } catch (PauserException e) {
+    } catch (Exception e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
     }
