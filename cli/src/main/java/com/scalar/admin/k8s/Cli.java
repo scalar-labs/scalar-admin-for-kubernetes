@@ -68,7 +68,7 @@ class Cli implements Callable<Integer> {
           duration.getStartTime().atZone(zoneId).toLocalDateTime(),
           duration.getEndTime().atZone(zoneId).toLocalDateTime(),
           zoneId.toString());
-    } catch (PauserException e) {
+    } catch (Exception e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
     }
