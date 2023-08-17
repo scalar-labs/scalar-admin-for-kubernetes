@@ -1,6 +1,6 @@
 package com.scalar.admin.k8s;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.ZoneId;
 import java.util.concurrent.Callable;
@@ -61,27 +61,24 @@ class Cli implements Callable<Integer> {
 
   @Override
   public Integer call() {
+    Result result = null;
+
     try {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
       PausedDuration duration = pauser.pause(pauseDuration);
 
+      result = new Result(namespace, helmReleaseName, duration, zoneId);
       ObjectMapper mapper = new ObjectMapper();
-      JsonNode node =
-          mapper
-              .createObjectNode()
-              .put("namespace", namespace)
-              .put("helm_release_name", helmReleaseName)
-              .put("pause_start_timestamp_ms", duration.getStartTime().toEpochMilli())
-              .put("pause_end_timestamp_ms", duration.getEndTime().toEpochMilli())
-              .put(
-                  "pause_start_date_time",
-                  duration.getStartTime().atZone(zoneId).toLocalDateTime().toString())
-              .put(
-                  "pause_end_date_time",
-                  duration.getEndTime().atZone(zoneId).toLocalDateTime().toString())
-              .put("timezone", zoneId.toString());
-
-      System.out.println(node.toString());
+      System.out.println(mapper.writeValueAsString(result));
+    } catch (JsonProcessingException e) {
+      logger.error(
+          "Succeeded to pause Scalar products but failed to output the result in JSON.", e);
+      logger.info(
+          "Paused duration: from {} to {}, {}",
+          result.pauseStartDateTime,
+          result.pauseEndDateTime,
+          result.timezone);
+      return 1;
     } catch (Exception e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
