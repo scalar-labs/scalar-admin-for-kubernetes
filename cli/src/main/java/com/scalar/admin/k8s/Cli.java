@@ -2,6 +2,7 @@ package com.scalar.admin.k8s;
 
 import java.time.ZoneId;
 import java.util.concurrent.Callable;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -37,6 +38,16 @@ class Cli implements Callable<Integer> {
   private Integer pauseDuration;
 
   @Option(
+      names = {"--max-pause-wait-time", "-w"},
+      description =
+          "The max wait time (in milliseconds) until Scalar products drain outstanding requests"
+              + " before they pause. If omitting this option, the max wait time will be the default"
+              + " value defined in the products. Most Scalar products have the default value of 30"
+              + " seconds.")
+  @Nullable
+  private Long maxPauseWaitTime;
+
+  @Option(
       names = {"--time-zone", "-z"},
       description =
           "Specify a time zone ID, e.g., Asia/Tokyo, to output successful paused"
@@ -61,7 +72,7 @@ class Cli implements Callable<Integer> {
   public Integer call() {
     try {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
-      PausedDuration duration = pauser.pause(pauseDuration);
+      PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
       System.out.printf(
           "Paused successfully. Duration: from %s to %s (%s).\n",
