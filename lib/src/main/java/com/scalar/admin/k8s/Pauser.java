@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,9 +64,12 @@ public class Pauser {
 
   /**
    * @param pauseDuration The duration to pause in milliseconds.
+   * @param maxPauseWaitTime The max wait time (in milliseconds) until Scalar products drain
+   *     outstanding requests before they pause.
    * @return The start and end time of the pause operation.
    */
-  public PausedDuration pause(int pauseDuration) throws PauserException {
+  public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
+      throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(
           "pauseDuration is required to be greater than 0 millisecond.");
@@ -84,7 +88,7 @@ public class Pauser {
                 .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
                 .collect(Collectors.toList()));
 
-    coordinator.pause(true, null);
+    coordinator.pause(true, maxPauseWaitTime);
 
     Instant startTime = Instant.now();
 

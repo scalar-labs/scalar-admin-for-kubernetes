@@ -19,6 +19,7 @@ subprojects {
         junitVersion = '5.9.3'
         mockitoVersion = '4.11.0'
         jacksonVersion = '2.15.2'
+        spotbugsVersion = '4.7.3'
     }
 
     repositories {
@@ -28,5 +29,6 @@ subprojects {
     dependencies {
         implementation "org.slf4j:slf4j-api:${slf4jVersion}"
         implementation "com.google.guava:guava:${guavaVersion}"
+        implementation "com.github.spotbugs:spotbugs-annotations:${spotbugsVersion}"
     }
 }
