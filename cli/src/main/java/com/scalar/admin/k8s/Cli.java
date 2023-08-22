@@ -1,5 +1,7 @@
 package com.scalar.admin.k8s;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.ZoneId;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
@@ -70,15 +72,24 @@ class Cli implements Callable<Integer> {
 
   @Override
   public Integer call() {
+    Result result = null;
+
     try {
       Pauser pauser = new Pauser(namespace, helmReleaseName);
       PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
-      System.out.printf(
-          "Paused successfully. Duration: from %s to %s (%s).\n",
-          duration.getStartTime().atZone(zoneId).toLocalDateTime(),
-          duration.getEndTime().atZone(zoneId).toLocalDateTime(),
-          zoneId.toString());
+      result = new Result(namespace, helmReleaseName, duration, zoneId);
+      ObjectMapper mapper = new ObjectMapper();
+      System.out.println(mapper.writeValueAsString(result));
+    } catch (JsonProcessingException e) {
+      logger.error(
+          "Succeeded to pause Scalar products but failed to output the result in JSON.", e);
+      logger.info(
+          "Paused duration: from {} to {}, {}",
+          result.pauseStartDateTime,
+          result.pauseEndDateTime,
+          result.timezone);
+      return 1;
     } catch (Exception e) {
       logger.error("Failed to pause Scalar products.", e);
       return 1;
