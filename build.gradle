@@ -8,7 +8,7 @@ subprojects {
     }
 
     group = "com.scalar-labs"
-    project.version = project.findProperty('projVersion') ?: '1.0.0-SNAPSHOT'
+    project.version = project.findProperty('projVersion') ?: '1.1.0-SNAPSHOT'
 
     ext {
         scalarAdminVersion = '2.1.2'
@@ -20,6 +20,8 @@ subprojects {
         mockitoVersion = '4.11.0'
         jacksonVersion = '2.15.2'
         spotbugsVersion = '4.7.3'
+        dockerPluginVersion = '0.34.0'
+        shadowJarPluginVersion = '7.1.2'
     }
 
     repositories {
