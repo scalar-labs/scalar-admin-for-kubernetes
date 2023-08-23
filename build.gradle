@@ -20,8 +20,6 @@ subprojects {
         mockitoVersion = '4.11.0'
         jacksonVersion = '2.15.2'
         spotbugsVersion = '4.7.3'
-        dockerPluginVersion = '0.34.0'
-        shadowJarPluginVersion = '7.1.2'
     }
 
     repositories {

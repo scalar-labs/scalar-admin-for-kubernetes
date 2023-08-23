@@ -50,8 +50,15 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Build Docker image
-        run: ./gradlew docker
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      - name: Push Docker image to GitHub Container Registry
-        run: docker push ghcr.io/scalar-labs/scalar-admin-k8s:${{ env.version }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./cli
+          push: true
+          tags: ghcr.io/scalar-labs/scalar-admin-k8s:${{ env.version }}

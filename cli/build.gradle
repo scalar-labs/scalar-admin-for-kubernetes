@@ -1,6 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version "${shadowJarPluginVersion}"
-    id 'com.palantir.docker' version "${dockerPluginVersion}"
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 dependencies {
@@ -18,10 +17,4 @@ shadowJar {
 
    // this is to merge gRPC service files into the shadow jar
    mergeServiceFiles()
-}
-
-docker {
-    dependsOn shadowJar
-    name "ghcr.io/scalar-labs/scalar-admin-k8s:${project.version}"
-    files tasks.shadowJar.outputs
 }
