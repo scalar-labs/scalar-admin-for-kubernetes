@@ -8,7 +8,7 @@ subprojects {
     }
 
     group = "com.scalar-labs"
-    project.version = project.findProperty('projVersion') ?: '1.1.0-SNAPSHOT'
+    project.version = project.findProperty('projVersion') ?: '2.0.0-SNAPSHOT'
 
     ext {
         scalarAdminVersion = '2.1.2'
