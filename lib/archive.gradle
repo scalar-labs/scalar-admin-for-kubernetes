@@ -8,7 +8,7 @@ publishing {
             from components.java
             pom {
                 name = 'Scalar Admin for Kubernetes'
-                description = 'This library provides a fault-tolerant manner to pause Scalar products in Kubernetes environments and ensure the data is transactionally consistent.'
+                description = 'This library provides a pause mechanism to the Scalar products in Kubernetes environments to take transactionally consistent backups.'
                 url = 'https://github.com/scalar-labs/scalar-admin'
                 licenses {
                     license {
