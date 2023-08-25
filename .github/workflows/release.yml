@@ -41,6 +41,9 @@ jobs:
             -PgprUsername="${{ github.repository_owner }}" \
             -PgprPassword="${{ secrets.CR_PAT }}"
 
+      - name: Build the shadow Jar
+        run: ./gradlew shadowJar
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
