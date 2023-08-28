@@ -9,7 +9,7 @@ publishing {
             pom {
                 name = 'Scalar Admin for Kubernetes'
                 description = 'This library provides a pause mechanism to the Scalar products in Kubernetes environments to take transactionally consistent backups.'
-                url = 'https://github.com/scalar-labs/scalar-admin'
+                url = 'https://github.com/scalar-labs/scalar-admin-k8s'
                 licenses {
                     license {
                         name = 'Apache License, Version 2.0'
