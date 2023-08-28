@@ -1,0 +1,52 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'scalar-admin-k8s'
+            from components.java
+            pom {
+                name = 'Scalar Admin for Kubernetes'
+                description = 'This library provides a pause mechanism to the Scalar products in Kubernetes environments to take transactionally consistent backups.'
+                url = 'https://github.com/scalar-labs/scalar-admin-k8s'
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'hiroyuki'
+                        name = 'Hiroyuki Yamada'
+                        email = 'hiroyuki.yamada@scalar-labs.com'
+                    }
+                    developer {
+                        id = 'supl'
+                        name = 'Plenty Su'
+                        email = 'plenty.su@scalar-labs.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/scalar-labs/scalar-admin-k8s.git'
+                    developerConnection = 'scm:git:https://github.com/scalar-labs/scalar-admin-k8s.git'
+                    url = 'https://github.com/scalar-labs/scalar-admin-k8s'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = uri("https://maven.pkg.github.com/scalar-labs/scalar-admin-k8s")
+            credentials {
+                username = project.findProperty("gprUsername") ?: System.getenv("GPR_USERNAME")
+                password = project.findProperty("gprPassword") ?: System.getenv("GPR_PASSWORD")
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
+}
