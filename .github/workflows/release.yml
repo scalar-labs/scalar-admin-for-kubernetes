@@ -25,7 +25,7 @@ jobs:
         run: |
           if [ ${{ github.ref }} == 'refs/heads/main' ]; then
             VERSION=$(./gradlew :lib:properties -q | grep "version:" | awk '{print $2}')
-          elfi [[ ${{ github.ref }} =~ ^refs\/tags\/v ]]; then
+          elif [[ ${{ github.ref }} =~ ^refs\/tags\/v ]]; then
             VERSION=$(echo ${{ github.ref }} | sed -e "s#refs/tags/v##g")
           else
             echo 'This job might not be triggered by neither the vM.m.p tag pushing nor main branch merging'
