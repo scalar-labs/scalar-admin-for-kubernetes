@@ -34,7 +34,7 @@ jobs:
 
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Upload the package to Maven Central Repository
+      - name: Upload the package to GitHub Package
         run: |
           ./gradlew publish \
             -PprojVersion="${{ steps.version.outputs.version }}" \
