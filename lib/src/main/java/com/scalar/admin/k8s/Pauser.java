@@ -42,6 +42,7 @@ public class Pauser {
   /**
    * @param namespace The namespace where the pods are deployed.
    * @param helmReleaseName The Helm release name used to deploy the pods.
+   * @throws PauserException when the default Kubernetes client fails to be set.
    */
   public Pauser(String namespace, String helmReleaseName) throws PauserException {
     if (namespace == null) {
@@ -66,6 +67,7 @@ public class Pauser {
    * @param pauseDuration The duration to pause in milliseconds.
    * @param maxPauseWaitTime The max wait time (in milliseconds) until Scalar products drain
    *     outstanding requests before they pause.
+   * @throws PauserException when the pause operation fails.
    * @return The start and end time of the pause operation.
    */
   public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
