@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
