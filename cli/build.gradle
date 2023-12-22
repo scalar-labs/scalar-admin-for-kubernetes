@@ -9,10 +9,10 @@ dependencies {
 }
 
 shadowJar {
-   archiveBaseName.set('scalar-admin-k8s-cli')
+   archiveBaseName.set('scalar-admin-for-kubernetes-cli')
    archiveClassifier.set('')
    manifest {
-        attributes 'Main-Class': 'com.scalar.admin.k8s.Cli'
+        attributes 'Main-Class': 'com.scalar.admin.kubernetes.Cli'
    }
 
    // this is to merge gRPC service files into the shadow jar

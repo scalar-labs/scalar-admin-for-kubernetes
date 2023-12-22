@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;

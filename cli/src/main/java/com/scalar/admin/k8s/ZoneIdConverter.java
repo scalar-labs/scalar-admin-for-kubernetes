@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import java.time.ZoneId;
 import picocli.CommandLine.ITypeConverter;

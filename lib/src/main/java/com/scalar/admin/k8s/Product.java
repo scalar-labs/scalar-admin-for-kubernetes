@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 enum Product {
   SCALARDB_SERVER("scalardb", "scalardb"),

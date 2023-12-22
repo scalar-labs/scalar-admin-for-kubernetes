@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
