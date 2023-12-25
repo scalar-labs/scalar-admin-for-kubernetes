@@ -1,5 +1,7 @@
 # Scalar Admin for Kubernetes
 
+Scalar Admin for Kubernetes is a tool that creates a paused state for Scalar products (for example, ScalarDB and ScalarDL) in a Kubernetes environment. You can use such a paused state to take backups easily and consistently across multiple diverse databases.
+
 ## Usage of the CLI tool
 
 ```console
