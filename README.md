@@ -31,11 +31,12 @@ Scalar Admin pause tool for the Kubernetes environment
                                zone ID is case sensitive. Etc/UTC by default.
 ```
 
-## Run the CLI tool on a Kubernetes environment
+## Run the CLI tool in a Kubernetes environment
 
 The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal processes. To run those Kubernetes APIs, you must run the `scalar-admin-k8s` CLI tool as a pod on the Kubernetes environment and you must:
 
-1. Create three Kubernetes resources (`Role`, `RoleBinding`, and `ServiceAccount`).
+1. Create three Kubernetes resources (`Role`, `RoleBinding`, and `ServiceAccount`), replacing the contents in the angle brackets as described:
+
    * Role
 
      ```yaml
@@ -77,7 +78,8 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
        namespace: <YOUR_NAMESPACE>
      ```
 
-1. Mount the `ServiceAccount` on the `scalar-admin-k8s` pod.
+1. Mount the `ServiceAccount` on the `scalar-admin-k8s` pod, replacing the contents in the angle brackets as described:
+
    * Pod
 
      ```yaml
@@ -105,6 +107,6 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
            - <TIMEZONE>
      ```
 
-## Run the CLI tool on a Kubernetes environment by using Helm Chart
+## Run the CLI tool in a Kubernetes environment by using a Helm Chart
 
 Coming soon.
