@@ -1,11 +1,11 @@
-# Scalar Admin k8s
+# Scalar Admin for Kubernetes
 
 ## Usage of the CLI tool
 
 ```console
-Usage: scalar-admin-k8s-cli [-h] [-d=<pauseDuration>] [-n=<namespace>]
-                            -r=<helmReleaseName> [-w=<maxPauseWaitTime>]
-                            [-z=<zoneId>]
+Usage: scalar-admin-for-kubernetes-cli [-h] [-d=<pauseDuration>]
+                                       [-n=<namespace>] -r=<helmReleaseName>
+                                       [-w=<maxPauseWaitTime>] [-z=<zoneId>]
 Scalar Admin pause tool for the Kubernetes environment
   -d, --pause-duration=<pauseDuration>
                              The duration of the pause period by millisecond.
@@ -33,7 +33,7 @@ Scalar Admin pause tool for the Kubernetes environment
 
 ## Run the CLI tool in a Kubernetes environment
 
-The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal processes. To run those Kubernetes APIs, you must run the `scalar-admin-k8s` CLI tool as a pod on the Kubernetes environment and you must:
+The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its internal processes. To run those Kubernetes APIs, you must run the `scalar-admin-for-kubernetes` CLI tool as a pod on the Kubernetes environment and you must:
 
 1. Create three Kubernetes resources (`Role`, `RoleBinding`, and `ServiceAccount`), replacing the contents in the angle brackets as described:
 
@@ -43,7 +43,7 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
      apiVersion: rbac.authorization.k8s.io/v1
      kind: Role
      metadata:
-       name: scalar-admin-k8s-role
+       name: scalar-admin-for-kubernetes-role
        namespace: <YOUR_NAMESPACE>
      rules:
        - apiGroups: ["", "apps"]
@@ -57,14 +57,14 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
      apiVersion: rbac.authorization.k8s.io/v1
      kind: RoleBinding
      metadata:
-       name: scalar-admin-k8s-rolebinding
+       name: scalar-admin-for-kubernetes-rolebinding
        namespace: <YOUR_NAMESPACE>
      subjects:
        - kind: ServiceAccount
-         name: scalar-admin-k8s-sa
+         name: scalar-admin-for-kubernetes-sa
      roleRef:
        kind: Role
-       name: scalar-admin-k8s-role
+       name: scalar-admin-for-kubernetes-role
        apiGroup: rbac.authorization.k8s.io
      ```
 
@@ -74,11 +74,11 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
      apiVersion: v1
      kind: ServiceAccount
      metadata:
-       name: scalar-admin-k8s-sa
+       name: scalar-admin-for-kubernetes-sa
        namespace: <YOUR_NAMESPACE>
      ```
 
-1. Mount the `ServiceAccount` on the `scalar-admin-k8s` pod, replacing the contents in the angle brackets as described:
+1. Mount the `ServiceAccount` on the `scalar-admin-for-kubernetes` pod, replacing the contents in the angle brackets as described:
 
    * Pod
 
@@ -86,13 +86,13 @@ The `scalar-admin-k8s` CLI tool executes Kubernetes APIs in its internal process
      apiVersion: v1
      kind: Pod
      metadata:
-       name: scalar-admin-k8s
+       name: scalar-admin-for-kubernetes
        namespace: <YOUR_NAMESPACE>
      spec:
-       serviceAccountName: scalar-admin-k8s-sa
+       serviceAccountName: scalar-admin-for-kubernetes-sa
        containers:
-       - name: scalar-admin-k8s
-         image: ghcr.io/scalar-labs/scalar-admin-k8s:1.0.0
+       - name: scalar-admin-for-kubernetes
+         image: ghcr.io/scalar-labs/scalar-admin-for-kubernetes:1.0.0
          command:
            - java
            - -jar
