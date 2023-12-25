@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import java.time.Instant;
 import javax.annotation.concurrent.Immutable;

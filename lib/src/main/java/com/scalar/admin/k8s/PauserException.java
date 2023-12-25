@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 public class PauserException extends Exception {
   public PauserException(String message) {

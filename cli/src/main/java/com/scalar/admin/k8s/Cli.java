@@ -1,4 +1,4 @@
-package com.scalar.admin.k8s;
+package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +12,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 @Command(
-    name = "scalar-admin-k8s-cli",
+    name = "scalar-admin-for-kubernetes-cli",
     description = "Scalar Admin pause tool for the Kubernetes environment")
 class Cli implements Callable<Integer> {
 
