@@ -1,4 +1,5 @@
-FROM ghcr.io/scalar-labs/jre8:1.1.14
+FROM eclipse-temurin:8-jre
+RUN apt-get upgrade -y
 
 COPY build/libs/scalar-admin-for-kubernetes-cli*.jar /app.jar
 
