@@ -35,7 +35,7 @@ Scalar Admin pause tool for the Kubernetes environment
 
 ## Run the CLI tool in a Kubernetes environment
 
-The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its internal processes. To run those Kubernetes APIs, you must run the `scalar-admin-for-kubernetes` CLI tool as a pod on the Kubernetes environment and you must:
+The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its internal processes. To run those Kubernetes APIs, you must run the `scalar-admin-for-kubernetes` CLI tool as a pod in the Kubernetes environment and do the following:
 
 1. Create three Kubernetes resources (`Role`, `RoleBinding`, and `ServiceAccount`), replacing the contents in the angle brackets as described:
 
