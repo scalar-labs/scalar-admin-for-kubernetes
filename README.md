@@ -80,7 +80,7 @@ The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its inter
        namespace: <YOUR_NAMESPACE>
      ```
 
-1. Mount the `ServiceAccount` on the `scalar-admin-for-kubernetes` pod, replacing the contents in the angle brackets as described:
+1. Mount the `ServiceAccount` resource on the `scalar-admin-for-kubernetes` pod, replacing the contents in the angle brackets as described:
 
    * Pod
 
