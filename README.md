@@ -17,10 +17,10 @@ Scalar Admin pause tool for the Kubernetes environment
                              Namespace that Scalar products you want to pause
                                are deployed. `default` by default.
   -r, --release-name=<helmReleaseName>
-                             Helm's release name that you specify when you run
-                               the `helm install <RELEASE_NAME>` command. You
-                               can see the <RELEASE_NAME> by using the `helm
-                               list` command.
+                             Required. The helm release name that you specify
+                               when you run the `helm install <RELEASE_NAME>`
+                               command. You can see the <RELEASE_NAME> by using
+                               the `helm list` command.
   -w, --max-pause-wait-time=<maxPauseWaitTime>
                              The max wait time (in milliseconds) until Scalar
                                products drain outstanding requests before they
