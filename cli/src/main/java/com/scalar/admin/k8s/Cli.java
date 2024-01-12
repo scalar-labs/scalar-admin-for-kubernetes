@@ -28,9 +28,9 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--release-name", "-r"},
       description =
-          "This option is required. Helm's release name that you specify when you run the `helm"
-              + " install <RELEASE_NAME>` command. You can see the <RELEASE_NAME> by using the"
-              + " `helm list` command.",
+          "Required. The helm release name that you specify when you run the `helm install"
+              + " <RELEASE_NAME>` command. You can see the <RELEASE_NAME> by using the `helm list`"
+              + " command.",
       required = true)
   private String helmReleaseName;
 
