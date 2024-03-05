@@ -11,7 +11,7 @@ subprojects {
     project.version = project.findProperty('projVersion') ?: '2.0.0-SNAPSHOT'
 
     ext {
-        scalarAdminVersion = '2.1.2'
+        scalarAdminVersion = '2.2.0'
         guavaVersion = '31.1-jre'
         kubernetesClientVersion = '17.0.2'
         slf4jVersion = '1.7.36'
