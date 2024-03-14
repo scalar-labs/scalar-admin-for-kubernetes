@@ -111,4 +111,14 @@ The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its inter
 
 ## Run the CLI tool in a Kubernetes environment by using a Helm Chart
 
-Coming soon.
+For details on how to use a Helm Chart to deploy Scalar Admin for Kubernetes in a Kubernetes environment, see the following documentation based on the product you're using:
+
+### For ScalarDB
+
+1. [Configure a custom values file for Scalar Admin for Kubernetes](https://scalardb.scalar-labs.com/docs/latest/helm-charts/configure-custom-values-scalar-admin-for-kubernetes/)
+1. [How to deploy Scalar Admin for Kubernetes](https://scalardb.scalar-labs.com/docs/latest/helm-charts/how-to-deploy-scalar-admin-for-kubernetes/)
+
+### For ScalarDL
+
+1. [Configure a custom values file for Scalar Admin for Kubernetes](https://scalardl.scalar-labs.com/docs/latest/helm-charts/configure-custom-values-scalar-admin-for-kubernetes/)
+1. [How to deploy Scalar Admin for Kubernetes](https://scalardl.scalar-labs.com/docs/latest/helm-charts/how-to-deploy-scalar-admin-for-kubernetes/)
