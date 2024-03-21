@@ -5,10 +5,24 @@ Scalar Admin for Kubernetes is a tool that creates a paused state for ScalarDB o
 ## Usage of the CLI tool
 
 ```console
-Usage: scalar-admin-for-kubernetes-cli [-h] [-d=<pauseDuration>]
-                                       [-n=<namespace>] -r=<helmReleaseName>
+Usage: scalar-admin-for-kubernetes-cli [-h] [--tls]
+                                       [--ca-root-cert-path=<caRootCertPath>]
+                                       [--ca-root-cert-pem=<caRootCertPem>]
+                                       [-d=<pauseDuration>] [-n=<namespace>]
+                                       [--override-authority=<overrideAuthority>
+                                       ] -r=<helmReleaseName>
                                        [-w=<maxPauseWaitTime>] [-z=<zoneId>]
 Scalar Admin pause tool for the Kubernetes environment
+      --ca-root-cert-path=<caRootCertPath>
+                             A path to a root certificate file for verifying
+                               the server's certificate when wire encryption is
+                               enabled.
+      --ca-root-cert-pem=<caRootCertPem>
+                             A PEM format string of a root certificate for
+                               verifying the server's certificate when wire
+                               encryption is enabled. This option is
+                               prioritized when --ca-root-cert-path is
+                               specified.
   -d, --pause-duration=<pauseDuration>
                              The duration of the pause period by millisecond.
                                5000 (5 seconds) by default.
@@ -16,11 +30,17 @@ Scalar Admin pause tool for the Kubernetes environment
   -n, --namespace=<namespace>
                              Namespace that Scalar products you want to pause
                                are deployed. `default` by default.
+      --override-authority=<overrideAuthority>
+                             The value to be used as the expected authority in
+                               the server's certificate when wire encryption is
+                               enabled.
   -r, --release-name=<helmReleaseName>
                              Required. The helm release name that you specify
                                when you run the `helm install <RELEASE_NAME>`
                                command. You can see the <RELEASE_NAME> by using
                                the `helm list` command.
+      --tls                  Whether wire encryption (TLS) between scalar-admin
+                               and the target is enabled.
   -w, --max-pause-wait-time=<maxPauseWaitTime>
                              The max wait time (in milliseconds) until Scalar
                                products drain outstanding requests before they

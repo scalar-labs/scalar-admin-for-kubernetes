@@ -84,11 +84,7 @@ public class Pauser {
       throw new PauserException("Failed to find the target pods to pause.", e);
     }
 
-    RequestCoordinator coordinator =
-        new RequestCoordinator(
-            target.getPods().stream()
-                .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
-                .collect(Collectors.toList()));
+    RequestCoordinator coordinator = getRequestCoordinator(target);
 
     coordinator.pause(true, maxPauseWaitTime);
 
@@ -136,5 +132,12 @@ public class Pauser {
         }
       }
     }
+  }
+
+  RequestCoordinator getRequestCoordinator(TargetSnapshot target) {
+    return new RequestCoordinator(
+        target.getPods().stream()
+            .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
+            .collect(Collectors.toList()));
   }
 }

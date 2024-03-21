@@ -2,6 +2,11 @@ package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.ZoneId;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
@@ -60,6 +65,33 @@ class Cli implements Callable<Integer> {
   private ZoneId zoneId;
 
   @Option(
+      names = {"--tls"},
+      description = "Whether wire encryption (TLS) between scalar-admin and the target is enabled.")
+  private boolean tlsEnabled;
+
+  @Option(
+      names = {"--ca-root-cert-path"},
+      description =
+          "A path to a root certificate file for verifying the server's certificate when wire"
+              + " encryption is enabled.")
+  private String caRootCertPath;
+
+  @Option(
+      names = {"--ca-root-cert-pem"},
+      description =
+          "A PEM format string of a root certificate for verifying the server's certificate when"
+              + " wire encryption is enabled. This option is prioritized when --ca-root-cert-path"
+              + " is specified.")
+  private String caRootCertPem;
+
+  @Option(
+      names = {"--override-authority"},
+      description =
+          "The value to be used as the expected authority in the server's certificate when wire"
+              + " encryption is enabled.")
+  private String overrideAuthority;
+
+  @Option(
       names = {"-h", "--help"},
       usageHelp = true,
       description = "Display the help message.")
@@ -76,7 +108,11 @@ class Cli implements Callable<Integer> {
     Result result = null;
 
     try {
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
+      Pauser pauser =
+          tlsEnabled
+              ? new TlsPauser(namespace, helmReleaseName, getCaRootCert(), overrideAuthority)
+              : new Pauser(namespace, helmReleaseName);
+
       PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
       result = new Result(namespace, helmReleaseName, duration, zoneId);
@@ -97,5 +133,23 @@ class Cli implements Callable<Integer> {
     }
 
     return 0;
+  }
+
+  private String getCaRootCert() {
+    String caRootCert = null;
+
+    if (caRootCertPem != null) {
+      caRootCert = caRootCertPem.replace("\\n", System.lineSeparator());
+    } else if (caRootCertPath != null) {
+      try {
+        caRootCert =
+            new String(
+                Files.readAllBytes(new File(caRootCertPath).toPath()), StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        throw new UncheckedIOException("Couldn't read the file: " + caRootCertPath, e);
+      }
+    }
+
+    return caRootCert;
   }
 }
