@@ -78,12 +78,7 @@ public class Pauser {
           "pauseDuration is required to be greater than 0 millisecond.");
     }
 
-    TargetSnapshot target;
-    try {
-      target = targetSelector.select();
-    } catch (Exception e) {
-      throw new PauserException("Failed to find the target pods to pause.", e);
-    }
+    TargetSnapshot target = getTarget();
 
     RequestCoordinator coordinator;
     try {
@@ -157,6 +152,14 @@ public class Pauser {
               e);
         }
       }
+    }
+  }
+
+  TargetSnapshot getTarget() throws PauserException {
+    try {
+      return targetSelector.select();
+    } catch (Exception e) {
+      throw new PauserException("Failed to find the target pods to pause.", e);
     }
   }
 
