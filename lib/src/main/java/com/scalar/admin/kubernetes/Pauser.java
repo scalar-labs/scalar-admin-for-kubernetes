@@ -1,5 +1,6 @@
 package com.scalar.admin.kubernetes;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;
 import io.kubernetes.client.openapi.Configuration;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 public class Pauser {
 
-  private static final int MAX_UNPAUSE_RETRY_COUNT = 3;
+  @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
   private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
@@ -84,17 +85,30 @@ public class Pauser {
       throw new PauserException("Failed to find the target pods to pause.", e);
     }
 
-    RequestCoordinator coordinator = getRequestCoordinator(target);
+    RequestCoordinator coordinator;
+    try {
+      coordinator = getRequestCoordinator(target);
+    } catch (Exception e) {
+      throw new PauserException("Failed to initialize the coordinator.", e);
+    }
 
-    coordinator.pause(true, maxPauseWaitTime);
+    Instant startTime;
+    Instant endTime;
+    try {
+      coordinator.pause(true, maxPauseWaitTime);
 
-    Instant startTime = Instant.now();
+      startTime = Instant.now();
 
-    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
+      Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
 
-    Instant endTime = Instant.now();
+      endTime = Instant.now();
 
-    unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
+      unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
+
+    } catch (Exception e) {
+      unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
+      throw e;
+    }
 
     TargetSnapshot targetAfterPause;
     try {
@@ -113,8 +127,9 @@ public class Pauser {
     return new PausedDuration(startTime, endTime);
   }
 
-  private void unpauseWithRetry(
-      RequestCoordinator coordinator, int maxRetryCount, TargetSnapshot target) {
+  @VisibleForTesting
+  void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount, TargetSnapshot target)
+      throws PauserException {
     int retryCounter = 0;
 
     while (true) {
@@ -123,12 +138,23 @@ public class Pauser {
         return;
       } catch (Exception e) {
         if (++retryCounter >= maxRetryCount) {
-          logger.warn(
+          // If someone uses this library directly instead of using our CLI, users should handle the
+          // exception properly. However, this case is a very critical issue. Therefore, we output
+          // the error message here despite whether the exception is handled or not on the caller
+          // side.
+          logger.error(
               "Failed to unpause Scalar product. They are still in paused. You must restart related"
                   + " pods by using the `kubectl rollout restart deployment {}`"
-                  + " command to unpase all pods.",
+                  + " command to unpause all pods.",
               target.getDeployment().getMetadata().getName());
-          return;
+          // In our CLI, we catch this exception and output the message as an error on the CLI side.
+          throw new PauserException(
+              String.format(
+                  "Failed to unpause Scalar product. They are still in paused. You must restart"
+                      + " related pods by using the `kubectl rollout restart deployment %s` command"
+                      + " to unpause all pods.",
+                  target.getDeployment().getMetadata().getName()),
+              e);
         }
       }
     }
