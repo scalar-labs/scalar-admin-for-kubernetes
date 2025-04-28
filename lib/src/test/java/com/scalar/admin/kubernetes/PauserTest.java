@@ -1,14 +1,20 @@
 package com.scalar.admin.kubernetes;
 
 import static com.scalar.admin.kubernetes.Pauser.MAX_UNPAUSE_RETRY_COUNT;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.util.Config;
 import java.io.IOException;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -139,7 +145,6 @@ class PauserTest {
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
       doReturn(targetSnapshot).when(pauser).getTarget();
       doThrow(RuntimeException.class).when(pauser).getRequestCoordinator(targetSnapshot);
-      doNothing().when(requestCoordinator).unpause();
 
       // Act & Assert
       PauserException thrown =
@@ -160,8 +165,13 @@ class PauserTest {
       doNothing().when(requestCoordinator).unpause();
 
       // Act & Assert
-      RuntimeException thrown =
-          assertThrows(RuntimeException.class, () -> pauser.pause(pauseDuration, null));
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "The pause operation failed for some reason. However, the unpause operation succeeded"
+              + " afterward. Currently, the scalar products are running with the unpause status."
+              + " You should retry the pause operation to ensure proper backup.",
+          thrown.getMessage());
       verify(pauser, times(1))
           .unpauseWithRetry(
               any(RequestCoordinator.class),
@@ -170,22 +180,258 @@ class PauserTest {
     }
 
     @Test
-    void WhenInstantNowThrowExceptionShouldRunUnpause() {}
+    void WhenInstantNowThrowExceptionShouldRunUnpause() throws PauserException {
+      // Arrange
+      MockedStatic<Instant> mockedTime = mockStatic(Instant.class);
+      mockedTime.when(() -> Instant.now()).thenThrow(RuntimeException.class);
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doNothing().when(requestCoordinator).unpause();
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "The pause operation failed for some reason. However, the unpause operation succeeded"
+              + " afterward. Currently, the scalar products are running with the unpause status."
+              + " You should retry the pause operation to ensure proper backup.",
+          thrown.getMessage());
+      verify(pauser, times(1))
+          .unpauseWithRetry(
+              any(RequestCoordinator.class),
+              eq(MAX_UNPAUSE_RETRY_COUNT),
+              any(TargetSnapshot.class));
+
+      mockedTime.close();
+    }
 
     @Test
-    void WhenSleepThrowExceptionShouldRunUnpause() {}
+    void WhenSleepThrowExceptionShouldRunUnpause() throws PauserException {
+      // Arrange
+      int pauseDuration = 1;
+      MockedStatic<Uninterruptibles> mockedSleep = mockStatic(Uninterruptibles.class);
+      mockedSleep
+          .when(() -> Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS))
+          .thenThrow(RuntimeException.class);
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doNothing().when(requestCoordinator).unpause();
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "The pause operation failed for some reason. However, the unpause operation succeeded"
+              + " afterward. Currently, the scalar products are running with the unpause status."
+              + " You should retry the pause operation to ensure proper backup.",
+          thrown.getMessage());
+      verify(pauser, times(1))
+          .unpauseWithRetry(
+              any(RequestCoordinator.class),
+              eq(MAX_UNPAUSE_RETRY_COUNT),
+              any(TargetSnapshot.class));
+
+      mockedSleep.close();
+    }
 
     @Test
-    void WhenUnpauseThrowExceptionShouldRunUnpauseAgain() {}
+    void WhenUnpauseThrowExceptionShouldRunUnpauseAgain() throws PauserException {
+      // Arrange
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doThrow(RuntimeException.class)
+          .doNothing()
+          .when(pauser)
+          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT, targetSnapshot);
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "The pause operation failed for some reason. However, the unpause operation succeeded"
+              + " afterward. Currently, the scalar products are running with the unpause status."
+              + " You should retry the pause operation to ensure proper backup.",
+          thrown.getMessage());
+      verify(pauser, times(2))
+          .unpauseWithRetry(
+              any(RequestCoordinator.class),
+              eq(MAX_UNPAUSE_RETRY_COUNT),
+              any(TargetSnapshot.class));
+    }
 
     @Test
-    void WhenSecondTargetSelectorThrowExceptionShouldThrowException() {}
+    void WhenUnpauseThrowPauserExceptionTwiceShouldRunUnpauseAgain() throws PauserException {
+      // Arrange
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doThrow(PauserException.class)
+          .doThrow(PauserException.class)
+          .when(pauser)
+          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT, targetSnapshot);
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals("unpauseWithRetry() method failed twice.", thrown.getMessage());
+      verify(pauser, times(2))
+          .unpauseWithRetry(
+              any(RequestCoordinator.class),
+              eq(MAX_UNPAUSE_RETRY_COUNT),
+              any(TargetSnapshot.class));
+    }
 
     @Test
-    void WhenTargetPodStatusChangedShouldThrowException() {}
+    void WhenUnpauseThrowUnexpectedExceptionTwiceShouldRunUnpauseAgain() throws PauserException {
+      // Arrange
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doThrow(RuntimeException.class)
+          .doThrow(RuntimeException.class)
+          .when(pauser)
+          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT, targetSnapshot);
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "unpauseWithRetry() method failed twice due to unexpected exception.",
+          thrown.getMessage());
+      verify(pauser, times(2))
+          .unpauseWithRetry(
+              any(RequestCoordinator.class),
+              eq(MAX_UNPAUSE_RETRY_COUNT),
+              any(TargetSnapshot.class));
+    }
 
     @Test
-    void WhenPauseSucceededReturnPausedDuration() {}
+    void WhenSecondTargetSelectorThrowExceptionShouldThrowException() throws PauserException {
+      // Arrange
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetSnapshot).doThrow(RuntimeException.class).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doNothing().when(requestCoordinator).unpause();
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "Failed to find the target pods to examine if the targets pods were updated during"
+              + " paused.",
+          thrown.getMessage());
+    }
+
+    @Test
+    void WhenTargetPodStatusChangedShouldThrowException() throws PauserException {
+      // Arrange
+      TargetSnapshot targetBeforePause = mock(TargetSnapshot.class);
+      TargetSnapshot targetAfterPause = mock(TargetSnapshot.class);
+      Map<String, Integer> podRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("dummyKey", 1);
+            }
+          };
+      Map<String, String> podResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("dummyKey", "dummyValue");
+            }
+          };
+      TargetStatus beforeTargetStatus =
+          new TargetStatus(podRestartCounts, podResourceVersions, "beforeDifferentValue");
+      TargetStatus afterTargetStatus =
+          new TargetStatus(podRestartCounts, podResourceVersions, "afterDifferentValue");
+      doReturn(beforeTargetStatus).when(targetBeforePause).getStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).getStatus();
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doNothing().when(requestCoordinator).unpause();
+
+      // Act & Assert
+      PauserException thrown =
+          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          "The target pods were updated during paused. Please retry.", thrown.getMessage());
+    }
+
+    @Test
+    void WhenPauseSucceededReturnPausedDuration() throws PauserException {
+      TargetSnapshot targetBeforePause = mock(TargetSnapshot.class);
+      TargetSnapshot targetAfterPause = mock(TargetSnapshot.class);
+      Map<String, Integer> podRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("dummyKey", 1);
+            }
+          };
+      Map<String, String> podResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("dummyKey", "dummyValue");
+            }
+          };
+      TargetStatus beforeTargetStatus =
+          new TargetStatus(podRestartCounts, podResourceVersions, "sameValue");
+      TargetStatus afterTargetStatus =
+          new TargetStatus(podRestartCounts, podResourceVersions, "sameValue");
+      doReturn(beforeTargetStatus).when(targetBeforePause).getStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).getStatus();
+
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+      MockedStatic<Instant> mockedTime = mockStatic(Instant.class);
+      mockedTime.when(() -> Instant.now()).thenReturn(startTime).thenReturn(endTime);
+
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetSnapshot);
+      doNothing().when(requestCoordinator).pause(true, null);
+      doNothing().when(requestCoordinator).unpause();
+
+      // Act & Assert
+      PausedDuration actual = assertDoesNotThrow(() -> pauser.pause(pauseDuration, 3000L));
+      PausedDuration expected = new PausedDuration(startTime, endTime);
+      assertEquals(actual.getStartTime(), expected.getStartTime());
+      assertEquals(actual.getEndTime(), expected.getEndTime());
+
+      mockedTime.close();
+    }
   }
 
   @Nested

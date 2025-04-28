@@ -78,7 +78,12 @@ public class Pauser {
           "pauseDuration is required to be greater than 0 millisecond.");
     }
 
-    TargetSnapshot target = getTarget();
+    TargetSnapshot target;
+    try {
+      target = getTarget();
+    } catch (Exception e) {
+      throw new PauserException("Failed to find the target pods to pause.", e);
+    }
 
     RequestCoordinator coordinator;
     try {
@@ -101,13 +106,24 @@ public class Pauser {
       unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
 
     } catch (Exception e) {
-      unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
-      throw e;
+      try {
+        unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
+      } catch (PauserException ex) {
+        throw new PauserException("unpauseWithRetry() method failed twice.", e);
+      } catch (Exception ex) {
+        throw new PauserException(
+            "unpauseWithRetry() method failed twice due to unexpected exception.", e);
+      }
+      throw new PauserException(
+          "The pause operation failed for some reason. However, the unpause operation succeeded"
+              + " afterward. Currently, the scalar products are running with the unpause status."
+              + " You should retry the pause operation to ensure proper backup.",
+          e);
     }
 
     TargetSnapshot targetAfterPause;
     try {
-      targetAfterPause = targetSelector.select();
+      targetAfterPause = getTarget();
     } catch (Exception e) {
       throw new PauserException(
           "Failed to find the target pods to examine if the targets pods were updated during"
@@ -155,12 +171,9 @@ public class Pauser {
     }
   }
 
+  @VisibleForTesting
   TargetSnapshot getTarget() throws PauserException {
-    try {
-      return targetSelector.select();
-    } catch (Exception e) {
-      throw new PauserException("Failed to find the target pods to pause.", e);
-    }
+    return targetSelector.select();
   }
 
   RequestCoordinator getRequestCoordinator(TargetSnapshot target) {
