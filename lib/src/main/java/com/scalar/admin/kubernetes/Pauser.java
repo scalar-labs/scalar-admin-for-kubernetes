@@ -149,10 +149,10 @@ public class Pauser {
         return;
       } catch (Exception e) {
         if (++retryCounter >= maxRetryCount) {
-          // If someone uses this library directly instead of using our CLI, users should handle the
-          // exception properly. However, this case is a very critical issue. Therefore, we output
-          // the error message here despite whether the exception is handled or not on the caller
-          // side.
+          // Users who directly utilize this library, bypassing our CLI, are responsible for proper
+          // exception handling. However, this scenario represents a critical issue. Consequently,
+          // we output the error message here regardless of whether the calling code handles the
+          // exception.
           logger.error(
               "Failed to unpause Scalar product. They are still in paused. You must restart related"
                   + " pods by using the `kubectl rollout restart deployment {}`"
@@ -176,6 +176,7 @@ public class Pauser {
     return targetSelector.select();
   }
 
+  @VisibleForTesting
   RequestCoordinator getRequestCoordinator(TargetSnapshot target) {
     return new RequestCoordinator(
         target.getPods().stream()
