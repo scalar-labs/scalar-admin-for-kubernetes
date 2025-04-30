@@ -1,4 +1,6 @@
 scalardb:
+  imagePullSecrets:
+  - name: reg-docker-secrets
   databaseProperties: |
     scalar.db.storage=jdbc
     scalar.db.contact_points=jdbc:postgresql://dummy.default.svc.cluster.local:5432/postgres
