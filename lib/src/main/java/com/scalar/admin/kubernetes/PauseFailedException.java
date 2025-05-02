@@ -1,6 +1,6 @@
 package com.scalar.admin.kubernetes;
 
-public class PauseFailedException extends Exception {
+public class PauseFailedException extends PauserException {
   public PauseFailedException(String message) {
     super(message);
   }

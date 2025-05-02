@@ -1,6 +1,6 @@
 package com.scalar.admin.kubernetes;
 
-public class StatusCheckFailedException extends Exception {
+public class StatusCheckFailedException extends PauserException {
   public StatusCheckFailedException(String message) {
     super(message);
   }
