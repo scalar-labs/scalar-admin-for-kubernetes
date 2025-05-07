@@ -14,8 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class implements a pause operation for Scalar product pods in a Kubernetes cluster. The
@@ -37,7 +35,6 @@ public class Pauser {
 
   @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
-  private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
   private Instant startTime;
   private Instant endTime;
@@ -74,8 +71,7 @@ public class Pauser {
    * @return The start and end time of the pause operation.
    */
   public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
-      throws PauserException, UnpauseFailedException, PauseFailedException,
-          StatusCheckFailedException {
+      throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(
           "pauseDuration is required to be greater than 0 millisecond.");
@@ -150,13 +146,15 @@ public class Pauser {
 
     // Check if pods and deployment information are the same between before pause and after pause.
     boolean compareTargetSuccessful;
+    StatusCheckFailedException statusCheckFailedException;
     try {
       compareTargetSuccessful = compareTargetStatus(targetBeforePause, targetAfterPause);
     } catch (Exception e) {
+      statusCheckFailedException = new StatusCheckFailedException(statusCheckErrorMessage, e);
       if (unpauseFailedException == null) {
-        throw new StatusCheckFailedException(statusCheckErrorMessage, e);
+        throw statusCheckFailedException;
       } else {
-        throw new UnpauseFailedException(unpauseErrorMessage, e);
+        throw new UnpauseFailedException(unpauseErrorMessage, statusCheckFailedException);
       }
     }
 
@@ -181,12 +179,15 @@ public class Pauser {
     String errorMessage = errorMessageBuilder.toString();
 
     // Return the final result based on each process.
-    if (unpauseFailedException != null) { // Unpause issue is the most critical.
+    if (unpauseFailedException
+        != null) { // Unpause issue is the most critical because it might cause system down.
       throw new UnpauseFailedException(errorMessage, unpauseFailedException);
     } else if (pauseFailedException
-        != null) { // Pause issue might be caused by configuration error.
+        != null) { // Pause Failed is second priority because pause issue might be caused by
+      // configuration error.
       throw new PauseFailedException(errorMessage, pauseFailedException);
-    } else if (!compareTargetSuccessful) { // Status check issue might be caused by temporary issue.
+    } else if (!compareTargetSuccessful) { // Status check failed is third priority because this
+      // issue might be caused by temporary issue, for example, pod restarts.
       throw new PauseFailedException(errorMessage);
     } else { // All operations succeeded.
       return new PausedDuration(startTime, endTime);
@@ -221,6 +222,7 @@ public class Pauser {
             .collect(Collectors.toList()));
   }
 
+  @VisibleForTesting
   void pauseInternal(
       RequestCoordinator requestCoordinator, int pauseDuration, @Nullable Long maxPauseWaitTime) {
 
@@ -230,6 +232,7 @@ public class Pauser {
     endTime = Instant.now();
   }
 
+  @VisibleForTesting
   boolean compareTargetStatus(TargetSnapshot before, TargetSnapshot after) {
     return before.getStatus().equals(after.getStatus());
   }
