@@ -29,7 +29,7 @@ class PauserTest {
   private TargetSnapshot targetAfterPause;
   private V1Deployment deployment;
   private V1ObjectMeta objectMeta;
-  private final String dummyObjectName = "dummyObjectName";
+  private static final String DUMMY_OBJECT_NAME = "dummyObjectName";
 
   @BeforeEach
   void beforeEach() throws PauserException {
@@ -44,7 +44,7 @@ class PauserTest {
     doReturn(deployment).when(targetBeforePause).getDeployment();
     doReturn(deployment).when(targetAfterPause).getDeployment();
     doReturn(objectMeta).when(deployment).getMetadata();
-    doReturn(dummyObjectName).when(objectMeta).getName();
+    doReturn(DUMMY_OBJECT_NAME).when(objectMeta).getName();
   }
 
   @AfterEach
@@ -337,7 +337,7 @@ class PauserTest {
                   + " command to unpause all pods. Note that the pause operations for taking backup"
                   + " succeeded. You can use a backup that was taken during this pause duration:"
                   + " Start Time = %s, End Time = %s. ",
-              dummyObjectName, startTime, endTime),
+              DUMMY_OBJECT_NAME, startTime, endTime),
           thrown.getMessage());
 
       mockedTime.close();
@@ -410,9 +410,11 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          "Unpause operation failed. Scalar products might still be in a paused state. You must"
-              + " restart related pods by using the `kubectl rollout restart deployment"
-              + " dummyObjectName` command to unpause all pods. ",
+          String.format(
+              "Unpause operation failed. Scalar products might still be in a paused state. You must"
+                  + " restart related pods by using the `kubectl rollout restart deployment"
+                  + " %s` command to unpause all pods. ",
+              DUMMY_OBJECT_NAME),
           thrown.getMessage());
     }
 
@@ -487,7 +489,7 @@ class PauserTest {
                   + " backup that was taken during this pause"
                   + " duration. You need to retry the pause operation from the beginning to"
                   + " take a backup. ",
-              dummyObjectName),
+              DUMMY_OBJECT_NAME),
           thrown.getMessage());
     }
 
@@ -517,7 +519,7 @@ class PauserTest {
                   + " command to unpause all pods. The target pods were updated during the pause"
                   + " duration. You cannot use the backup that was taken during this pause"
                   + " duration. ",
-              dummyObjectName),
+              DUMMY_OBJECT_NAME),
           thrown.getMessage());
     }
 
@@ -551,7 +553,7 @@ class PauserTest {
                   + " operation from the beginning to take a backup. The target pods were updated"
                   + " during the pause duration. You cannot use the backup that was taken during"
                   + " this pause duration. ",
-              dummyObjectName),
+              DUMMY_OBJECT_NAME),
           thrown.getMessage());
     }
 
