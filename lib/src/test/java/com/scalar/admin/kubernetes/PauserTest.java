@@ -312,16 +312,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
-
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
-      MockedStatic<Instant> mockedTime = mockStatic(Instant.class);
-      mockedTime.when(() -> Instant.now()).thenReturn(startTime).thenReturn(endTime);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
@@ -335,12 +334,9 @@ class PauserTest {
               "Unpause operation failed. Scalar products might still be in a paused state. You must"
                   + " restart related pods by using the `kubectl rollout restart deployment %s`"
                   + " command to unpause all pods. Note that the pause operations for taking backup"
-                  + " succeeded. You can use a backup that was taken during this pause duration:"
-                  + " Start Time = %s, End Time = %s. ",
+                  + " succeeded. You can use a backup that was taken during this pause duration. ",
               DUMMY_OBJECT_NAME, startTime, endTime),
           thrown.getMessage());
-
-      mockedTime.close();
     }
 
     @Test
@@ -350,10 +346,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
 
       // Act & Assert
@@ -373,10 +374,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
@@ -400,10 +406,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
       doThrow(RuntimeException.class).when(pauser).targetStatusEquals(any(), any());
 
@@ -425,10 +436,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
@@ -453,7 +469,12 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
 
@@ -476,7 +497,7 @@ class PauserTest {
       doReturn(beforeTargetStatus).when(targetBeforePause).getStatus();
       doReturn(afterTargetStatus).when(targetAfterPause).getStatus();
 
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
 
       // Act & Assert
@@ -528,10 +549,15 @@ class PauserTest {
       String namespace = "dummyNs";
       String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);

@@ -36,8 +36,6 @@ public class Pauser {
   @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
   private final TargetSelector targetSelector;
-  private Instant startTime;
-  private Instant endTime;
 
   /**
    * @param namespace The namespace where the pods are deployed.
@@ -94,9 +92,10 @@ public class Pauser {
     }
 
     // Run a pause operation.
+    PausedDuration pausedDuration = null;
     PauseFailedException pauseFailedException = null;
     try {
-      pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
+      pausedDuration = pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
     } catch (Exception e) {
       pauseFailedException = new PauseFailedException("Pause operation failed.", e);
     }
@@ -131,10 +130,8 @@ public class Pauser {
         "The target pods were updated during the pause duration. You cannot use the backup that"
             + " was taken during this pause duration. ";
     String unpauseFailedButPauseOkErrorMessage =
-        String.format(
-            "Note that the pause operations for taking backup succeeded. You can use a backup that"
-                + " was taken during this pause duration: Start Time = %s, End Time = %s. ",
-            startTime, endTime);
+        "Note that the pause operations for taking backup succeeded. You can use a backup that"
+            + " was taken during this pause duration. ";
 
     // Get pods and deployment information after pause.
     TargetSnapshot targetAfterPause;
@@ -196,7 +193,7 @@ public class Pauser {
       // issue might be caused by temporary issue, for example, pod restarts.
       throw new PauseFailedException(errorMessage);
     } else { // All operations succeeded.
-      return new PausedDuration(startTime, endTime);
+      return pausedDuration;
     }
   }
 
@@ -229,13 +226,13 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  void pauseInternal(
+  PausedDuration pauseInternal(
       RequestCoordinator requestCoordinator, int pauseDuration, @Nullable Long maxPauseWaitTime) {
-
     requestCoordinator.pause(true, maxPauseWaitTime);
-    startTime = Instant.now();
+    Instant startTime = Instant.now();
     Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
-    endTime = Instant.now();
+    Instant endTime = Instant.now();
+    return new PausedDuration(startTime, endTime);
   }
 
   @VisibleForTesting
