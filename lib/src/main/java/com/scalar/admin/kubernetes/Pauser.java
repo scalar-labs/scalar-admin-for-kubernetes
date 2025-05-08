@@ -135,11 +135,10 @@ public class Pauser {
 
     // Get pods and deployment information after pause.
     TargetSnapshot targetAfterPause;
-    PauserException pauserException;
     try {
       targetAfterPause = getTarget();
     } catch (Exception e) {
-      pauserException = new PauserException(getTargetAfterPauseErrorMessage, e);
+      PauserException pauserException = new PauserException(getTargetAfterPauseErrorMessage, e);
       if (unpauseFailedException == null) {
         throw pauserException;
       } else {
@@ -149,11 +148,11 @@ public class Pauser {
 
     // Check if pods and deployment information are the same between before pause and after pause.
     boolean isTargetStatusEqual;
-    StatusCheckFailedException statusCheckFailedException;
     try {
       isTargetStatusEqual = targetStatusEquals(targetBeforePause, targetAfterPause);
     } catch (Exception e) {
-      statusCheckFailedException = new StatusCheckFailedException(statusCheckErrorMessage, e);
+      StatusCheckFailedException statusCheckFailedException =
+          new StatusCheckFailedException(statusCheckErrorMessage, e);
       if (unpauseFailedException == null) {
         throw statusCheckFailedException;
       } else {
