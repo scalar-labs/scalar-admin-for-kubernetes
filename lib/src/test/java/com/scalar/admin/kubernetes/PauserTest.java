@@ -214,7 +214,7 @@ class PauserTest {
           .when(pauser)
           .pauseInternal(requestCoordinator, pauseDuration, null);
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
@@ -238,7 +238,7 @@ class PauserTest {
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
       doThrow(RuntimeException.class).when(requestCoordinator).pause(true, null);
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
@@ -263,7 +263,7 @@ class PauserTest {
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
@@ -291,7 +291,7 @@ class PauserTest {
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
@@ -325,7 +325,7 @@ class PauserTest {
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
@@ -394,7 +394,7 @@ class PauserTest {
     }
 
     @Test
-    void pause_WhenCompareTargetStatusThrowException_ShouldThrowStatusCheckFailedException()
+    void pause_WhenTargetStatusEqualsThrowException_ShouldThrowStatusCheckFailedException()
         throws PauserException {
       // Arrange
       String namespace = "dummyNs";
@@ -405,7 +405,7 @@ class PauserTest {
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
       doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doThrow(RuntimeException.class).when(pauser).compareTargetStatus(any(), any());
+      doThrow(RuntimeException.class).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       StatusCheckFailedException thrown =
@@ -432,7 +432,7 @@ class PauserTest {
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doThrow(RuntimeException.class).when(pauser).compareTargetStatus(any(), any());
+      doThrow(RuntimeException.class).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
@@ -504,7 +504,7 @@ class PauserTest {
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(true).when(pauser).compareTargetStatus(any(), any());
+      doReturn(true).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
@@ -535,7 +535,7 @@ class PauserTest {
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(false).when(pauser).compareTargetStatus(any(), any());
+      doReturn(false).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
@@ -567,7 +567,7 @@ class PauserTest {
       doThrow(RuntimeException.class)
           .when(pauser)
           .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(false).when(pauser).compareTargetStatus(any(), any());
+      doReturn(false).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
@@ -598,7 +598,7 @@ class PauserTest {
           .when(pauser)
           .pauseInternal(requestCoordinator, pauseDuration, null);
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(false).when(pauser).compareTargetStatus(any(), any());
+      doReturn(false).when(pauser).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =

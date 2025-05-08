@@ -151,10 +151,10 @@ public class Pauser {
     }
 
     // Check if pods and deployment information are the same between before pause and after pause.
-    boolean compareTargetSuccessful;
+    boolean isTargetStatusEqual;
     StatusCheckFailedException statusCheckFailedException;
     try {
-      compareTargetSuccessful = compareTargetStatus(targetBeforePause, targetAfterPause);
+      isTargetStatusEqual = targetStatusEquals(targetBeforePause, targetAfterPause);
     } catch (Exception e) {
       statusCheckFailedException = new StatusCheckFailedException(statusCheckErrorMessage, e);
       if (unpauseFailedException == null) {
@@ -166,7 +166,7 @@ public class Pauser {
 
     // If both the pause operation and status check succeeded, you can use the backup that was taken
     // during the pause duration.
-    boolean isPauseOk = (pauseFailedException == null) && compareTargetSuccessful;
+    boolean isPauseOk = (pauseFailedException == null) && isTargetStatusEqual;
 
     // Create an error message if any of the operations failed.
     StringBuilder errorMessageBuilder = new StringBuilder();
@@ -179,7 +179,7 @@ public class Pauser {
     if (pauseFailedException != null) {
       errorMessageBuilder.append(pauseErrorMessage);
     }
-    if (!compareTargetSuccessful) {
+    if (!isTargetStatusEqual) {
       errorMessageBuilder.append(statusDifferentErrorMessage);
     }
     String errorMessage = errorMessageBuilder.toString();
@@ -192,7 +192,7 @@ public class Pauser {
         != null) { // Pause Failed is second priority because pause issue might be caused by
       // configuration error.
       throw new PauseFailedException(errorMessage, pauseFailedException);
-    } else if (!compareTargetSuccessful) { // Status check failed is third priority because this
+    } else if (!isTargetStatusEqual) { // Status check failed is third priority because this
       // issue might be caused by temporary issue, for example, pod restarts.
       throw new PauseFailedException(errorMessage);
     } else { // All operations succeeded.
@@ -239,7 +239,7 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  boolean compareTargetStatus(TargetSnapshot before, TargetSnapshot after) {
+  boolean targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
     return before.getStatus().equals(after.getStatus());
   }
 }
