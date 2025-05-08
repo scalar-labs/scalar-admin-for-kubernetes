@@ -93,7 +93,7 @@ public class Pauser {
       throw new PauserException("Failed to initialize the request coordinator.", e);
     }
 
-    // Run pause operation.
+    // Run a pause operation.
     PauseFailedException pauseFailedException = null;
     try {
       pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
@@ -101,7 +101,7 @@ public class Pauser {
       pauseFailedException = new PauseFailedException("Pause operation failed.", e);
     }
 
-    // Run unpause operation.
+    // Run an unpause operation.
     UnpauseFailedException unpauseFailedException = null;
     try {
       unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
@@ -168,7 +168,7 @@ public class Pauser {
     // during the pause duration.
     boolean backupOk = (pauseFailedException == null) && compareTargetSuccessful;
 
-    // Create error message if any of the operations failed.
+    // Create an error message if any of the operations failed.
     StringBuilder errorMessageBuilder = new StringBuilder();
     if (unpauseFailedException != null) {
       errorMessageBuilder.append(unpauseErrorMessage);
