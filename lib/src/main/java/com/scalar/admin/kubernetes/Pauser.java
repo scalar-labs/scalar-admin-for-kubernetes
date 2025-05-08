@@ -130,7 +130,7 @@ public class Pauser {
     String statusDifferentErrorMessage =
         "The target pods were updated during the pause duration. You cannot use the backup that"
             + " was taken during this pause duration. ";
-    String unpauseFailedButBackupOkErrorMessage =
+    String unpauseFailedButPauseOkErrorMessage =
         String.format(
             "Note that the pause operations for taking backup succeeded. You can use a backup that"
                 + " was taken during this pause duration: Start Time = %s, End Time = %s. ",
@@ -166,14 +166,14 @@ public class Pauser {
 
     // If both the pause operation and status check succeeded, you can use the backup that was taken
     // during the pause duration.
-    boolean backupOk = (pauseFailedException == null) && compareTargetSuccessful;
+    boolean isPauseOk = (pauseFailedException == null) && compareTargetSuccessful;
 
     // Create an error message if any of the operations failed.
     StringBuilder errorMessageBuilder = new StringBuilder();
     if (unpauseFailedException != null) {
       errorMessageBuilder.append(unpauseErrorMessage);
-      if (backupOk) {
-        errorMessageBuilder.append(unpauseFailedButBackupOkErrorMessage);
+      if (isPauseOk) {
+        errorMessageBuilder.append(unpauseFailedButPauseOkErrorMessage);
       }
     }
     if (pauseFailedException != null) {
