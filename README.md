@@ -142,3 +142,7 @@ For details on how to use a Helm Chart to deploy Scalar Admin for Kubernetes in 
 
 1. [Configure a custom values file for Scalar Admin for Kubernetes](https://scalardl.scalar-labs.com/docs/latest/helm-charts/configure-custom-values-scalar-admin-for-kubernetes/)
 1. [How to deploy Scalar Admin for Kubernetes](https://scalardl.scalar-labs.com/docs/latest/helm-charts/how-to-deploy-scalar-admin-for-kubernetes/)
+
+### License
+
+Scalar Admin for Kubernetes is licensed under the Apache 2.0 License (found in the LICENSE file in the root directory).
