@@ -361,7 +361,35 @@ class PauserTest {
           assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
           "Failed to find the target pods to examine if the targets pods were updated during"
-              + " paused.",
+              + " paused. ",
+          thrown.getMessage());
+    }
+
+    @Test
+    void
+        pause_WhenSecondGetTargetAndUnpauseWithRetryThrowException_ShouldThrowUnpauseFailedException()
+            throws PauserException {
+      // Arrange
+      String namespace = "dummyNs";
+      String helmReleaseName = "dummyRelease";
+      int pauseDuration = 1;
+      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
+      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
+      doNothing().when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doThrow(RuntimeException.class)
+          .when(pauser)
+          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
+
+      // Act & Assert
+      UnpauseFailedException thrown =
+          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+      assertEquals(
+          String.format(
+              "Unpause operation failed. Scalar products might still be in a paused state. You"
+                  + " must restart related pods by using the `kubectl rollout restart deployment"
+                  + " %s` command to unpause all pods. ",
+              DUMMY_OBJECT_NAME),
           thrown.getMessage());
     }
 

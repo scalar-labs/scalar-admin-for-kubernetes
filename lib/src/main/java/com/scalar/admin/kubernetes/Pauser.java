@@ -109,17 +109,6 @@ public class Pauser {
       unpauseFailedException = new UnpauseFailedException("Unpause operation failed.", e);
     }
 
-    // Get pods and deployment information after pause.
-    TargetSnapshot targetAfterPause;
-    try {
-      targetAfterPause = getTarget();
-    } catch (Exception e) {
-      throw new PauserException(
-          "Failed to find the target pods to examine if the targets pods were updated during"
-              + " paused.",
-          e);
-    }
-
     // Prepare error messages for each process.
     String unpauseErrorMessage =
         String.format(
@@ -131,6 +120,9 @@ public class Pauser {
         "Pause operation failed. You cannot use the backup that was taken during this pause"
             + " duration. You need to retry the pause operation from the beginning to"
             + " take a backup. ";
+    String getTargetAfterPauseErrorMessage =
+        "Failed to find the target pods to examine if the targets pods were updated during"
+            + " paused. ";
     String statusCheckErrorMessage =
         "Status check failed. You cannot use the backup that was taken during this pause"
             + " duration. You need to retry the pause operation from the beginning to"
@@ -143,6 +135,20 @@ public class Pauser {
             "Note that the pause operations for taking backup succeeded. You can use a backup that"
                 + " was taken during this pause duration: Start Time = %s, End Time = %s. ",
             startTime, endTime);
+
+    // Get pods and deployment information after pause.
+    TargetSnapshot targetAfterPause;
+    PauserException pauserException;
+    try {
+      targetAfterPause = getTarget();
+    } catch (Exception e) {
+      pauserException = new PauserException(getTargetAfterPauseErrorMessage, e);
+      if (unpauseFailedException == null) {
+        throw pauserException;
+      } else {
+        throw new UnpauseFailedException(unpauseErrorMessage, pauserException);
+      }
+    }
 
     // Check if pods and deployment information are the same between before pause and after pause.
     boolean compareTargetSuccessful;
