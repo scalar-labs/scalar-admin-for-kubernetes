@@ -110,6 +110,10 @@ public class Pauser {
       throw new PauserException("Failed to initialize the request coordinator.", e);
     }
 
+    // From here, we cannot throw exceptions right after they occur because we need to take care of
+    // the unpause operation failure. We will throw the exception after the unpause operation or at
+    // the end of this method.
+
     // Run a pause operation.
     PausedDuration pausedDuration = null;
     PauseFailedException pauseFailedException = null;
@@ -158,6 +162,12 @@ public class Pauser {
     // Create an error message if any of the operations failed.
     String errorMessage =
         createErrorMessage(unpauseFailedException, pauseFailedException, isTargetStatusEqual);
+
+    // We use the exceptions as conditions instead of using boolean flags like `isPauseOk`, etc. If
+    // we use boolean flags, it might cause a bit large number of combinations. For example, if we
+    // have three flags, they generate 2^3 = 8 combinations. It also might make the nested if
+    // statement or a lot of branches of the switch statement. That's why we don't use status flags
+    // for now.
 
     // Return the final result based on each process.
     if (unpauseFailedException != null) { // Unpause Failed.
