@@ -37,6 +37,25 @@ public class Pauser {
 
   private final TargetSelector targetSelector;
 
+  private static final String UNPAUSE_ERROR_MESSAGE =
+      "Unpause operation failed. Scalar products might still be in a paused state. You"
+          + " must restart related pods by using the `kubectl rollout restart deployment"
+          + " <DEPLOYMENT_NAME>` command to unpause all pods. ";
+  private static final String PAUSE_ERROR_MESSAGE =
+      "Pause operation failed. You cannot use the backup that was taken during this pause"
+          + " duration. You need to retry the pause operation from the beginning to"
+          + " take a backup. ";
+  private static final String GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE =
+      "Failed to find the target pods to examine if the targets pods were updated during"
+          + " paused. ";
+  private static final String STATUS_CHECK_ERROR_MESSAGE =
+      "Status check failed. You cannot use the backup that was taken during this pause"
+          + " duration. You need to retry the pause operation from the beginning to"
+          + " take a backup. ";
+  private static final String STATUS_DIFFERENT_ERROR_MESSAGE =
+      "The target pods were updated during the pause duration. You cannot use the backup that"
+          + " was taken during this pause duration. ";
+
   /**
    * @param namespace The namespace where the pods are deployed.
    * @param helmReleaseName The Helm release name used to deploy the pods.
@@ -108,38 +127,17 @@ public class Pauser {
       unpauseFailedException = new UnpauseFailedException("Unpause operation failed.", e);
     }
 
-    // Prepare error messages for each process.
-    String unpauseErrorMessage =
-        String.format(
-            "Unpause operation failed. Scalar products might still be in a paused state. You"
-                + " must restart related pods by using the `kubectl rollout restart deployment"
-                + " %s` command to unpause all pods. ",
-            targetBeforePause.getDeployment().getMetadata().getName());
-    String pauseErrorMessage =
-        "Pause operation failed. You cannot use the backup that was taken during this pause"
-            + " duration. You need to retry the pause operation from the beginning to"
-            + " take a backup. ";
-    String getTargetAfterPauseErrorMessage =
-        "Failed to find the target pods to examine if the targets pods were updated during"
-            + " paused. ";
-    String statusCheckErrorMessage =
-        "Status check failed. You cannot use the backup that was taken during this pause"
-            + " duration. You need to retry the pause operation from the beginning to"
-            + " take a backup. ";
-    String statusDifferentErrorMessage =
-        "The target pods were updated during the pause duration. You cannot use the backup that"
-            + " was taken during this pause duration. ";
-
     // Get pods and deployment information after pause.
     TargetSnapshot targetAfterPause;
     try {
       targetAfterPause = getTarget();
     } catch (Exception e) {
-      PauserException pauserException = new PauserException(getTargetAfterPauseErrorMessage, e);
+      PauserException pauserException =
+          new PauserException(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, e);
       if (unpauseFailedException == null) {
         throw pauserException;
       } else {
-        throw new UnpauseFailedException(unpauseErrorMessage, pauserException);
+        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, pauserException);
       }
     }
 
@@ -149,26 +147,17 @@ public class Pauser {
       isTargetStatusEqual = targetStatusEquals(targetBeforePause, targetAfterPause);
     } catch (Exception e) {
       StatusCheckFailedException statusCheckFailedException =
-          new StatusCheckFailedException(statusCheckErrorMessage, e);
+          new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
       if (unpauseFailedException == null) {
         throw statusCheckFailedException;
       } else {
-        throw new UnpauseFailedException(unpauseErrorMessage, statusCheckFailedException);
+        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, statusCheckFailedException);
       }
     }
 
     // Create an error message if any of the operations failed.
-    StringBuilder errorMessageBuilder = new StringBuilder();
-    if (unpauseFailedException != null) {
-      errorMessageBuilder.append(unpauseErrorMessage);
-    }
-    if (pauseFailedException != null) {
-      errorMessageBuilder.append(pauseErrorMessage);
-    }
-    if (!isTargetStatusEqual) {
-      errorMessageBuilder.append(statusDifferentErrorMessage);
-    }
-    String errorMessage = errorMessageBuilder.toString();
+    String errorMessage =
+        createErrorMessage(unpauseFailedException, pauseFailedException, isTargetStatusEqual);
 
     // Return the final result based on each process.
     if (unpauseFailedException != null) { // Unpause Failed.
@@ -228,5 +217,22 @@ public class Pauser {
   @VisibleForTesting
   boolean targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
     return before.getStatus().equals(after.getStatus());
+  }
+
+  private String createErrorMessage(
+      UnpauseFailedException unpauseFailedException,
+      PauseFailedException pauseFailedException,
+      boolean isTargetStatusEqual) {
+    StringBuilder errorMessageBuilder = new StringBuilder();
+    if (unpauseFailedException != null) {
+      errorMessageBuilder.append(UNPAUSE_ERROR_MESSAGE);
+    }
+    if (pauseFailedException != null) {
+      errorMessageBuilder.append(PAUSE_ERROR_MESSAGE);
+    }
+    if (!isTargetStatusEqual) {
+      errorMessageBuilder.append(STATUS_DIFFERENT_ERROR_MESSAGE);
+    }
+    return errorMessageBuilder.toString();
   }
 }

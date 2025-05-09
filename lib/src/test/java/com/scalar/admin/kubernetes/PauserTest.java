@@ -330,11 +330,9 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You must"
-                  + " restart related pods by using the `kubectl rollout restart deployment %s`"
-                  + " command to unpause all pods. ",
-              DUMMY_OBJECT_NAME, startTime, endTime),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. ",
           thrown.getMessage());
     }
 
@@ -390,11 +388,9 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You"
-                  + " must restart related pods by using the `kubectl rollout restart deployment"
-                  + " %s` command to unpause all pods. ",
-              DUMMY_OBJECT_NAME),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. ",
           thrown.getMessage());
     }
 
@@ -453,11 +449,9 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You must"
-                  + " restart related pods by using the `kubectl rollout restart deployment"
-                  + " %s` command to unpause all pods. ",
-              DUMMY_OBJECT_NAME),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. ",
           thrown.getMessage());
     }
 
@@ -530,14 +524,11 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You"
-                  + " must restart related pods by using the `kubectl rollout restart deployment"
-                  + " %s` command to unpause all pods. Pause operation failed. You cannot use the"
-                  + " backup that was taken during this pause"
-                  + " duration. You need to retry the pause operation from the beginning to"
-                  + " take a backup. ",
-              DUMMY_OBJECT_NAME),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. Pause operation failed. You"
+              + " cannot use the backup that was taken during this pause duration. You need to"
+              + " retry the pause operation from the beginning to take a backup. ",
           thrown.getMessage());
     }
 
@@ -566,13 +557,11 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You must"
-                  + " restart related pods by using the `kubectl rollout restart deployment %s`"
-                  + " command to unpause all pods. The target pods were updated during the pause"
-                  + " duration. You cannot use the backup that was taken during this pause"
-                  + " duration. ",
-              DUMMY_OBJECT_NAME),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. The target pods were updated"
+              + " during the pause duration. You cannot use the backup that was taken during"
+              + " this pause duration. ",
           thrown.getMessage());
     }
 
@@ -598,15 +587,13 @@ class PauserTest {
       UnpauseFailedException thrown =
           assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
       assertEquals(
-          String.format(
-              "Unpause operation failed. Scalar products might still be in a paused state. You"
-                  + " must restart related pods by using the `kubectl rollout restart deployment"
-                  + " %s` command to unpause all pods. Pause operation failed. You cannot use the"
-                  + " backup that was taken during this pause duration. You need to retry the pause"
-                  + " operation from the beginning to take a backup. The target pods were updated"
-                  + " during the pause duration. You cannot use the backup that was taken during"
-                  + " this pause duration. ",
-              DUMMY_OBJECT_NAME),
+          "Unpause operation failed. Scalar products might still be in a paused state. You must"
+              + " restart related pods by using the `kubectl rollout restart deployment"
+              + " <DEPLOYMENT_NAME>` command to unpause all pods. Pause operation failed. You"
+              + " cannot use the backup that was taken during this pause duration. You need to"
+              + " retry the pause operation from the beginning to take a backup. The target"
+              + " pods were updated during the pause duration. You cannot use the backup that"
+              + " was taken during this pause duration. ",
           thrown.getMessage());
     }
 
