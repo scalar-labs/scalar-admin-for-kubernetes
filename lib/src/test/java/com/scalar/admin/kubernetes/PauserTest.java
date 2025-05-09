@@ -333,8 +333,7 @@ class PauserTest {
           String.format(
               "Unpause operation failed. Scalar products might still be in a paused state. You must"
                   + " restart related pods by using the `kubectl rollout restart deployment %s`"
-                  + " command to unpause all pods. Note that the pause operations for taking backup"
-                  + " succeeded. You can use a backup that was taken during this pause duration. ",
+                  + " command to unpause all pods. ",
               DUMMY_OBJECT_NAME, startTime, endTime),
           thrown.getMessage());
     }

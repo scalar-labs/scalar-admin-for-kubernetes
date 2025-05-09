@@ -129,9 +129,6 @@ public class Pauser {
     String statusDifferentErrorMessage =
         "The target pods were updated during the pause duration. You cannot use the backup that"
             + " was taken during this pause duration. ";
-    String unpauseFailedButPauseOkErrorMessage =
-        "Note that the pause operations for taking backup succeeded. You can use a backup that"
-            + " was taken during this pause duration. ";
 
     // Get pods and deployment information after pause.
     TargetSnapshot targetAfterPause;
@@ -160,17 +157,10 @@ public class Pauser {
       }
     }
 
-    // If both the pause operation and status check succeeded, you can use the backup that was taken
-    // during the pause duration.
-    boolean isPauseOk = (pauseFailedException == null) && isTargetStatusEqual;
-
     // Create an error message if any of the operations failed.
     StringBuilder errorMessageBuilder = new StringBuilder();
     if (unpauseFailedException != null) {
       errorMessageBuilder.append(unpauseErrorMessage);
-      if (isPauseOk) {
-        errorMessageBuilder.append(unpauseFailedButPauseOkErrorMessage);
-      }
     }
     if (pauseFailedException != null) {
       errorMessageBuilder.append(pauseErrorMessage);
@@ -181,17 +171,18 @@ public class Pauser {
     String errorMessage = errorMessageBuilder.toString();
 
     // Return the final result based on each process.
-    if (unpauseFailedException
-        != null) { // Unpause issue is the most critical because it might cause system down.
+    if (unpauseFailedException != null) { // Unpause Failed.
+      // Unpause issue is the most critical because it might cause system down.
       throw new UnpauseFailedException(errorMessage, unpauseFailedException);
-    } else if (pauseFailedException
-        != null) { // Pause Failed is second priority because pause issue might be caused by
-      // configuration error.
+    } else if (pauseFailedException != null) { // Pause Failed.
+      // Pause Failed is second priority because pause issue might be caused by configuration error.
       throw new PauseFailedException(errorMessage, pauseFailedException);
-    } else if (!isTargetStatusEqual) { // Status check failed is third priority because this
-      // issue might be caused by temporary issue, for example, pod restarts.
+    } else if (!isTargetStatusEqual) { // Target status changed.
+      // Target status changed is third priority because this issue might be caused by temporary
+      // issue, for example, pod restarts.
       throw new PauseFailedException(errorMessage);
-    } else { // All operations succeeded.
+    } else {
+      // All operations succeeded.
       return pausedDuration;
     }
   }
