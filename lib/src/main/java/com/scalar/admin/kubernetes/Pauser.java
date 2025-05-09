@@ -1,5 +1,6 @@
 package com.scalar.admin.kubernetes;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;
 import io.kubernetes.client.openapi.Configuration;
@@ -13,8 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class implements a pause operation for Scalar product pods in a Kubernetes cluster. The
@@ -34,10 +33,28 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 public class Pauser {
 
-  private static final int MAX_UNPAUSE_RETRY_COUNT = 3;
+  @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
-  private final Logger logger = LoggerFactory.getLogger(Pauser.class);
   private final TargetSelector targetSelector;
+
+  private static final String UNPAUSE_ERROR_MESSAGE =
+      "Unpause operation failed. Scalar products might still be in a paused state. You"
+          + " must restart related pods by using the `kubectl rollout restart deployment"
+          + " <DEPLOYMENT_NAME>` command to unpause all pods. ";
+  private static final String PAUSE_ERROR_MESSAGE =
+      "Pause operation failed. You cannot use the backup that was taken during this pause"
+          + " duration. You need to retry the pause operation from the beginning to"
+          + " take a backup. ";
+  private static final String GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE =
+      "Failed to find the target pods to examine if the targets pods were updated during"
+          + " paused. ";
+  private static final String STATUS_CHECK_ERROR_MESSAGE =
+      "Status check failed. You cannot use the backup that was taken during this pause"
+          + " duration. You need to retry the pause operation from the beginning to"
+          + " take a backup. ";
+  private static final String STATUS_DIFFERENT_ERROR_MESSAGE =
+      "The target pods were updated during the pause duration. You cannot use the backup that"
+          + " was taken during this pause duration. ";
 
   /**
    * @param namespace The namespace where the pods are deployed.
@@ -77,67 +94,155 @@ public class Pauser {
           "pauseDuration is required to be greater than 0 millisecond.");
     }
 
-    TargetSnapshot target;
+    // Get pods and deployment information before pause.
+    TargetSnapshot targetBeforePause;
     try {
-      target = targetSelector.select();
+      targetBeforePause = getTarget();
     } catch (Exception e) {
       throw new PauserException("Failed to find the target pods to pause.", e);
     }
 
-    RequestCoordinator coordinator = getRequestCoordinator(target);
+    // Get RequestCoordinator of Scalar Admin to pause.
+    RequestCoordinator requestCoordinator;
+    try {
+      requestCoordinator = getRequestCoordinator(targetBeforePause);
+    } catch (Exception e) {
+      throw new PauserException("Failed to initialize the request coordinator.", e);
+    }
 
-    coordinator.pause(true, maxPauseWaitTime);
+    // From here, we cannot throw exceptions right after they occur because we need to take care of
+    // the unpause operation failure. We will throw the exception after the unpause operation or at
+    // the end of this method.
 
-    Instant startTime = Instant.now();
+    // Run a pause operation.
+    PausedDuration pausedDuration = null;
+    PauseFailedException pauseFailedException = null;
+    try {
+      pausedDuration = pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
+    } catch (Exception e) {
+      pauseFailedException = new PauseFailedException("Pause operation failed.", e);
+    }
 
-    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
+    // Run an unpause operation.
+    UnpauseFailedException unpauseFailedException = null;
+    try {
+      unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
+    } catch (Exception e) {
+      unpauseFailedException = new UnpauseFailedException("Unpause operation failed.", e);
+    }
 
-    Instant endTime = Instant.now();
-
-    unpauseWithRetry(coordinator, MAX_UNPAUSE_RETRY_COUNT, target);
-
+    // Get pods and deployment information after pause.
     TargetSnapshot targetAfterPause;
     try {
-      targetAfterPause = targetSelector.select();
+      targetAfterPause = getTarget();
     } catch (Exception e) {
-      throw new PauserException(
-          "Failed to find the target pods to examine if the targets pods were updated during"
-              + " paused.",
-          e);
+      PauserException pauserException =
+          new PauserException(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, e);
+      if (unpauseFailedException == null) {
+        throw pauserException;
+      } else {
+        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, pauserException);
+      }
     }
 
-    if (!target.getStatus().equals(targetAfterPause.getStatus())) {
-      throw new PauserException("The target pods were updated during paused. Please retry.");
+    // Check if pods and deployment information are the same between before pause and after pause.
+    boolean isTargetStatusEqual;
+    try {
+      isTargetStatusEqual = targetStatusEquals(targetBeforePause, targetAfterPause);
+    } catch (Exception e) {
+      StatusCheckFailedException statusCheckFailedException =
+          new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
+      if (unpauseFailedException == null) {
+        throw statusCheckFailedException;
+      } else {
+        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, statusCheckFailedException);
+      }
     }
 
-    return new PausedDuration(startTime, endTime);
+    // Create an error message if any of the operations failed.
+    String errorMessage =
+        createErrorMessage(unpauseFailedException, pauseFailedException, isTargetStatusEqual);
+
+    // We use the exceptions as conditions instead of using boolean flags like `isPauseOk`, etc. If
+    // we use boolean flags, it might cause a bit large number of combinations. For example, if we
+    // have three flags, they generate 2^3 = 8 combinations. It also might make the nested if
+    // statement or a lot of branches of the switch statement. That's why we don't use status flags
+    // for now.
+
+    // Return the final result based on each process.
+    if (unpauseFailedException != null) { // Unpause Failed.
+      // Unpause issue is the most critical because it might cause system down.
+      throw new UnpauseFailedException(errorMessage, unpauseFailedException);
+    } else if (pauseFailedException != null) { // Pause Failed.
+      // Pause Failed is second priority because pause issue might be caused by configuration error.
+      throw new PauseFailedException(errorMessage, pauseFailedException);
+    } else if (!isTargetStatusEqual) { // Target status changed.
+      // Target status changed is third priority because this issue might be caused by temporary
+      // issue, for example, pod restarts.
+      throw new PauseFailedException(errorMessage);
+    } else {
+      // All operations succeeded.
+      return pausedDuration;
+    }
   }
 
-  private void unpauseWithRetry(
-      RequestCoordinator coordinator, int maxRetryCount, TargetSnapshot target) {
+  @VisibleForTesting
+  void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount) {
     int retryCounter = 0;
-
     while (true) {
       try {
         coordinator.unpause();
         return;
       } catch (Exception e) {
         if (++retryCounter >= maxRetryCount) {
-          logger.warn(
-              "Failed to unpause Scalar product. They are still in paused. You must restart related"
-                  + " pods by using the `kubectl rollout restart deployment {}`"
-                  + " command to unpase all pods.",
-              target.getDeployment().getMetadata().getName());
-          return;
+          throw e;
         }
       }
     }
   }
 
+  @VisibleForTesting
+  TargetSnapshot getTarget() throws PauserException {
+    return targetSelector.select();
+  }
+
+  @VisibleForTesting
   RequestCoordinator getRequestCoordinator(TargetSnapshot target) {
     return new RequestCoordinator(
         target.getPods().stream()
             .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
             .collect(Collectors.toList()));
+  }
+
+  @VisibleForTesting
+  PausedDuration pauseInternal(
+      RequestCoordinator requestCoordinator, int pauseDuration, @Nullable Long maxPauseWaitTime) {
+    requestCoordinator.pause(true, maxPauseWaitTime);
+    Instant startTime = Instant.now();
+    Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
+    Instant endTime = Instant.now();
+    return new PausedDuration(startTime, endTime);
+  }
+
+  @VisibleForTesting
+  boolean targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
+    return before.getStatus().equals(after.getStatus());
+  }
+
+  private String createErrorMessage(
+      UnpauseFailedException unpauseFailedException,
+      PauseFailedException pauseFailedException,
+      boolean isTargetStatusEqual) {
+    StringBuilder errorMessageBuilder = new StringBuilder();
+    if (unpauseFailedException != null) {
+      errorMessageBuilder.append(UNPAUSE_ERROR_MESSAGE);
+    }
+    if (pauseFailedException != null) {
+      errorMessageBuilder.append(PAUSE_ERROR_MESSAGE);
+    }
+    if (!isTargetStatusEqual) {
+      errorMessageBuilder.append(STATUS_DIFFERENT_ERROR_MESSAGE);
+    }
+    return errorMessageBuilder.toString();
   }
 }
