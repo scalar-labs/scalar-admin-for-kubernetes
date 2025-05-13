@@ -37,24 +37,33 @@ public class Pauser {
 
   private final TargetSelector targetSelector;
 
-  private static final String UNPAUSE_ERROR_MESSAGE =
+  @VisibleForTesting
+  static final String UNPAUSE_ERROR_MESSAGE =
       "Unpause operation failed. Scalar products might still be in a paused state. You"
           + " must restart related pods by using the `kubectl rollout restart deployment"
-          + " <DEPLOYMENT_NAME>` command to unpause all pods. ";
-  private static final String PAUSE_ERROR_MESSAGE =
+          + " <DEPLOYMENT_NAME>` command to unpause all pods.";
+
+  @VisibleForTesting
+  static final String PAUSE_ERROR_MESSAGE =
       "Pause operation failed. You cannot use the backup that was taken during this pause"
           + " duration. You need to retry the pause operation from the beginning to"
-          + " take a backup. ";
-  private static final String GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE =
+          + " take a backup.";
+
+  @VisibleForTesting
+  static final String GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE =
       "Failed to find the target pods to examine if the targets pods were updated during"
-          + " paused. ";
-  private static final String STATUS_CHECK_ERROR_MESSAGE =
+          + " paused.";
+
+  @VisibleForTesting
+  static final String STATUS_CHECK_ERROR_MESSAGE =
       "Status check failed. You cannot use the backup that was taken during this pause"
           + " duration. You need to retry the pause operation from the beginning to"
-          + " take a backup. ";
-  private static final String STATUS_DIFFERENT_ERROR_MESSAGE =
+          + " take a backup.";
+
+  @VisibleForTesting
+  static final String STATUS_UNMATCHED_ERROR_MESSAGE =
       "The target pods were updated during the pause duration. You cannot use the backup that"
-          + " was taken during this pause duration. ";
+          + " was taken during this pause duration.";
 
   /**
    * @param namespace The namespace where the pods are deployed.
@@ -120,7 +129,7 @@ public class Pauser {
     try {
       pausedDuration = pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
     } catch (Exception e) {
-      pauseFailedException = new PauseFailedException("Pause operation failed.", e);
+      pauseFailedException = new PauseFailedException(PAUSE_ERROR_MESSAGE, e);
     }
 
     // Run an unpause operation.
@@ -128,58 +137,45 @@ public class Pauser {
     try {
       unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
     } catch (Exception e) {
-      unpauseFailedException = new UnpauseFailedException("Unpause operation failed.", e);
+      unpauseFailedException = new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, e);
     }
 
     // Get pods and deployment information after pause.
-    TargetSnapshot targetAfterPause;
+    TargetSnapshot targetAfterPause = null;
+    GetTargetAfterPauseFailedException getTargetAfterPauseFailedException = null;
     try {
       targetAfterPause = getTarget();
     } catch (Exception e) {
-      PauserException pauserException =
-          new PauserException(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, e);
-      if (unpauseFailedException == null) {
-        throw pauserException;
-      } else {
-        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, pauserException);
-      }
+      getTargetAfterPauseFailedException =
+          new GetTargetAfterPauseFailedException(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, e);
     }
 
     // Check if pods and deployment information are the same between before pause and after pause.
-    boolean isTargetStatusEqual;
+    StatusCheckFailedException statusCheckFailedException = null;
+    StatusUnmatchedException statusUnmatchedException = null;
     try {
-      isTargetStatusEqual = targetStatusEquals(targetBeforePause, targetAfterPause);
+      statusUnmatchedException = targetStatusEquals(targetBeforePause, targetAfterPause);
     } catch (Exception e) {
-      StatusCheckFailedException statusCheckFailedException =
-          new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
-      if (unpauseFailedException == null) {
-        throw statusCheckFailedException;
-      } else {
-        throw new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, statusCheckFailedException);
-      }
+      statusCheckFailedException = new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
     }
-
-    // Create an error message if any of the operations failed.
-    String errorMessage =
-        createErrorMessage(unpauseFailedException, pauseFailedException, isTargetStatusEqual);
 
     // We use the exceptions as conditions instead of using boolean flags like `isPauseOk`, etc. If
     // we use boolean flags, it might cause a bit large number of combinations. For example, if we
     // have three flags, they generate 2^3 = 8 combinations. It also might make the nested if
     // statement or a lot of branches of the switch statement. That's why we don't use status flags
     // for now.
+    PauserException pauserException =
+        buildException(
+            unpauseFailedException,
+            pauseFailedException,
+            getTargetAfterPauseFailedException,
+            statusCheckFailedException,
+            statusUnmatchedException);
 
     // Return the final result based on each process.
-    if (unpauseFailedException != null) { // Unpause Failed.
-      // Unpause issue is the most critical because it might cause system down.
-      throw new UnpauseFailedException(errorMessage, unpauseFailedException);
-    } else if (pauseFailedException != null) { // Pause Failed.
-      // Pause Failed is second priority because pause issue might be caused by configuration error.
-      throw new PauseFailedException(errorMessage, pauseFailedException);
-    } else if (!isTargetStatusEqual) { // Target status changed.
-      // Target status changed is third priority because this issue might be caused by temporary
-      // issue, for example, pod restarts.
-      throw new PauseFailedException(errorMessage);
+    if (pauserException != null) {
+      // Some operations failed.
+      throw pauserException;
     } else {
       // All operations succeeded.
       return pausedDuration;
@@ -225,24 +221,70 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  boolean targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
-    return before.getStatus().equals(after.getStatus());
+  @Nullable
+  StatusUnmatchedException targetStatusEquals(
+      TargetSnapshot before, @Nullable TargetSnapshot after) {
+    if (after != null && before.getStatus().equals(after.getStatus())) {
+      return null;
+    } else {
+      return new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE);
+    }
   }
 
-  private String createErrorMessage(
-      UnpauseFailedException unpauseFailedException,
-      PauseFailedException pauseFailedException,
-      boolean isTargetStatusEqual) {
-    StringBuilder errorMessageBuilder = new StringBuilder();
+  @Nullable
+  @VisibleForTesting
+  PauserException buildException(
+      @Nullable UnpauseFailedException unpauseFailedException,
+      @Nullable PauseFailedException pauseFailedException,
+      @Nullable GetTargetAfterPauseFailedException getTargetAfterPauseFailedException,
+      @Nullable StatusCheckFailedException statusCheckFailedException,
+      @Nullable StatusUnmatchedException statusUnmatchedException) {
+    PauserException pauserException = null;
+
+    // Unpause issue is the most critical because it might cause system down.
     if (unpauseFailedException != null) {
-      errorMessageBuilder.append(UNPAUSE_ERROR_MESSAGE);
+      pauserException = unpauseFailedException;
     }
+
+    // Pause Failed is second priority because pause issue might be caused by configuration error.
     if (pauseFailedException != null) {
-      errorMessageBuilder.append(PAUSE_ERROR_MESSAGE);
+      if (pauserException == null) {
+        pauserException = pauseFailedException;
+      } else {
+        pauserException.addSuppressed(pauseFailedException);
+      }
     }
-    if (!isTargetStatusEqual) {
-      errorMessageBuilder.append(STATUS_DIFFERENT_ERROR_MESSAGE);
+
+    // Get target issue is third priority because this issue might be caused by temporary issue, for
+    // example, network issues.
+    if (getTargetAfterPauseFailedException != null) {
+      if (pauserException == null) {
+        pauserException = getTargetAfterPauseFailedException;
+      } else {
+        pauserException.addSuppressed(getTargetAfterPauseFailedException);
+      }
     }
-    return errorMessageBuilder.toString();
+
+    // Status check issue is third priority because this issue might be caused by temporary issue,
+    // for example, targetAfterPause is null.
+    if (statusCheckFailedException != null) {
+      if (pauserException == null) {
+        pauserException = statusCheckFailedException;
+      } else {
+        pauserException.addSuppressed(statusCheckFailedException);
+      }
+    }
+
+    // Status unmatched issue is third priority because this issue might be caused by temporary
+    // issue, for example, pod restarts.
+    if (statusUnmatchedException != null) {
+      if (pauserException == null) {
+        pauserException = statusUnmatchedException;
+      } else {
+        pauserException.addSuppressed(statusUnmatchedException);
+      }
+    }
+
+    return pauserException;
   }
 }
