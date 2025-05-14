@@ -153,10 +153,12 @@ public class Pauser {
     // Check if pods and deployment information are the same between before pause and after pause.
     StatusCheckFailedException statusCheckFailedException = null;
     StatusUnmatchedException statusUnmatchedException = null;
-    try {
-      statusUnmatchedException = targetStatusEquals(targetBeforePause, targetAfterPause);
-    } catch (Exception e) {
-      statusCheckFailedException = new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
+    if (targetAfterPause != null) {
+      try {
+        statusUnmatchedException = targetStatusEquals(targetBeforePause, targetAfterPause);
+      } catch (Exception e) {
+        statusCheckFailedException = new StatusCheckFailedException(STATUS_CHECK_ERROR_MESSAGE, e);
+      }
     }
 
     // We use the exceptions as conditions instead of using boolean flags like `isPauseOk`, etc. If
@@ -222,9 +224,8 @@ public class Pauser {
 
   @VisibleForTesting
   @Nullable
-  StatusUnmatchedException targetStatusEquals(
-      TargetSnapshot before, @Nullable TargetSnapshot after) {
-    if (after != null && before.getStatus().equals(after.getStatus())) {
+  StatusUnmatchedException targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
+    if (before.getStatus().equals(after.getStatus())) {
       return null;
     } else {
       return new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE);
