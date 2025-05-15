@@ -242,12 +242,12 @@ public class Pauser {
       @Nullable StatusUnmatchedException statusUnmatchedException) {
     PauserException pauserException = null;
 
-    // Unpause issue is the most critical because it might cause system down.
+    // Treat the unpause failure as most critical because it might cause system unavailability.
     if (unpauseFailedException != null) {
       pauserException = unpauseFailedException;
     }
 
-    // Pause Failed is second priority because pause issue might be caused by configuration error.
+    // Treat the pause failure as the second priority because the issue might be caused by a configuration mistake.
     if (pauseFailedException != null) {
       if (pauserException == null) {
         pauserException = pauseFailedException;
@@ -256,8 +256,8 @@ public class Pauser {
       }
     }
 
-    // Get target issue is third priority because this issue might be caused by temporary issue, for
-    // example, network issues.
+    // Treat the getting target failure as the third priority because this issue might be caused by a temporary glitch, for
+    // example, network failures.
     if (getTargetAfterPauseFailedException != null) {
       if (pauserException == null) {
         pauserException = getTargetAfterPauseFailedException;
@@ -266,7 +266,7 @@ public class Pauser {
       }
     }
 
-    // Status check issue is third priority because this issue might be caused by temporary issue,
+    // Treat the status checking failure as third priority because this issue might be caused by a temporary glitch,
     // for example, targetAfterPause is null.
     if (statusCheckFailedException != null) {
       if (pauserException == null) {
@@ -276,8 +276,8 @@ public class Pauser {
       }
     }
 
-    // Status unmatched issue is third priority because this issue might be caused by temporary
-    // issue, for example, pod restarts.
+    // Treat the status unmatched issue as third priority because this issue might be caused by temporary
+    // glitch, for example, pod restarts.
     if (statusUnmatchedException != null) {
       if (pauserException == null) {
         pauserException = statusUnmatchedException;
