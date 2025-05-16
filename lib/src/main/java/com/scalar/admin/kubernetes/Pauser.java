@@ -247,7 +247,8 @@ public class Pauser {
       pauserException = unpauseFailedException;
     }
 
-    // Treat the pause failure as the second priority because the issue might be caused by a configuration mistake.
+    // Treat the pause failure as the second priority because the issue might be caused by a
+    // configuration mistake.
     if (pauseFailedException != null) {
       if (pauserException == null) {
         pauserException = pauseFailedException;
@@ -256,8 +257,8 @@ public class Pauser {
       }
     }
 
-    // Treat the getting target failure as the third priority because this issue might be caused by a temporary glitch, for
-    // example, network failures.
+    // Treat the getting target failure as the third priority because this issue might be caused by
+    // a temporary glitch, for example, network failures.
     if (getTargetAfterPauseFailedException != null) {
       if (pauserException == null) {
         pauserException = getTargetAfterPauseFailedException;
@@ -266,8 +267,9 @@ public class Pauser {
       }
     }
 
-    // Treat the status checking failure as third priority because this issue might be caused by a temporary glitch,
-    // for example, targetAfterPause is null.
+    // Treat the status checking failure as the third priority because this issue might be caused by
+    // a temporary glitch, for example, getting target information by using the Kubernetes API fails
+    // after the pause operation.
     if (statusCheckFailedException != null) {
       if (pauserException == null) {
         pauserException = statusCheckFailedException;
@@ -276,8 +278,8 @@ public class Pauser {
       }
     }
 
-    // Treat the status unmatched issue as third priority because this issue might be caused by temporary
-    // glitch, for example, pod restarts.
+    // Treat the status unmatched issue as the third priority because this issue might be caused by
+    // temporary glitch, for example, pod restarts.
     if (statusUnmatchedException != null) {
       if (pauserException == null) {
         pauserException = statusUnmatchedException;
