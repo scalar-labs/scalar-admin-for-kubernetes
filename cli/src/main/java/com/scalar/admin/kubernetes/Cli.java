@@ -31,6 +31,14 @@ class Cli implements Callable<Integer> {
   private String namespace;
 
   @Option(
+      names = {"--pod-discovery-mode"},
+      description =
+          "The mode to discover the target pods."
+              + " Valid values: ${COMPLETION-CANDIDATES}. `helm-release` by default.",
+      defaultValue = "helm-release")
+  private PodDiscoveryMode podDiscoveryMode;
+
+  @Option(
       names = {"--release-name", "-r"},
       description =
           "The helm release name that you specify when you run the `helm install"
@@ -38,6 +46,22 @@ class Cli implements Callable<Integer> {
               + " command. Required when --pod-discovery-mode is helm-release.")
   @Nullable
   private String helmReleaseName;
+
+  @Option(
+      names = {"--deployment-name"},
+      description =
+          "The name of the Kubernetes Deployment for the Scalar product."
+              + " Required when --pod-discovery-mode is deployment.")
+  @Nullable
+  private String deploymentName;
+
+  @Option(
+      names = {"--admin-port"},
+      description =
+          "The port number of the admin interface of the Scalar product."
+              + " Required when --pod-discovery-mode is deployment.")
+  @Nullable
+  private Integer adminPort;
 
   @Option(
       names = {"--pause-duration", "-d"},
@@ -106,9 +130,8 @@ class Cli implements Callable<Integer> {
   @Override
   public Integer call() {
     // Validate CLI options for the selected pod discovery mode.
-    PodDiscoveryMode podDiscoveryMode = PodDiscoveryMode.HELM_RELEASE;
     try {
-      podDiscoveryMode.validate(helmReleaseName, null, null);
+      podDiscoveryMode.validate(helmReleaseName, deploymentName, adminPort);
     } catch (IllegalArgumentException e) {
       logger.error(e.getMessage());
       return 1;
@@ -118,8 +141,18 @@ class Cli implements Callable<Integer> {
 
     try {
       // Create TargetSelector via factory (K8s client init is handled internally).
-      TargetSelector targetSelector =
-          TargetSelectorFactory.fromHelmRelease(namespace, helmReleaseName);
+      TargetSelector targetSelector;
+      switch (podDiscoveryMode) {
+        case HELM_RELEASE:
+          targetSelector = TargetSelectorFactory.fromHelmRelease(namespace, helmReleaseName);
+          break;
+        case DEPLOYMENT:
+          targetSelector =
+              TargetSelectorFactory.fromDeployment(namespace, deploymentName, adminPort);
+          break;
+        default:
+          throw new AssertionError("Unknown PodDiscoveryMode: " + podDiscoveryMode);
+      }
 
       // Create Pauser with injected TargetSelector.
       Pauser pauser =

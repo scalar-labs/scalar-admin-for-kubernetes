@@ -4,7 +4,9 @@ import javax.annotation.Nullable;
 
 public enum PodDiscoveryMode {
   /** Discover target pods by Helm release name using label-based auto-detection. */
-  HELM_RELEASE;
+  HELM_RELEASE,
+  /** Discover target pods by Deployment name using its spec.selector.matchLabels. */
+  DEPLOYMENT;
 
   /**
    * Validates that CLI options are consistent with this mode. Checks for missing required options
@@ -30,6 +32,17 @@ public enum PodDiscoveryMode {
           throw new IllegalArgumentException(
               "--deployment-name and --admin-port cannot be used"
                   + " when --pod-discovery-mode is helm-release.");
+        }
+        break;
+      case DEPLOYMENT:
+        if (deploymentName == null || adminPort == null) {
+          throw new IllegalArgumentException(
+              "--deployment-name and --admin-port are required"
+                  + " when --pod-discovery-mode is deployment.");
+        }
+        if (helmReleaseName != null) {
+          throw new IllegalArgumentException(
+              "--release-name cannot be used when --pod-discovery-mode is deployment.");
         }
         break;
     }

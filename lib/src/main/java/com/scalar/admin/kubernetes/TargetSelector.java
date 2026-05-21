@@ -23,19 +23,53 @@ class TargetSelector {
   static final String LABEL_APP = "app.kubernetes.io/app";
   static final String ADMIN_SERVICE_NAME_SUFFIX = "-headless";
 
+  private final PodDiscoveryMode mode;
   private final CoreV1Api coreApi;
   private final AppsV1Api appsApi;
   private final String namespace;
-  private final String helmReleaseName;
+  @javax.annotation.Nullable private final String helmReleaseName;
+  @javax.annotation.Nullable private final String deploymentName;
+  private final int adminPort;
 
+  /** Constructor for HELM_RELEASE mode. */
   TargetSelector(CoreV1Api coreApi, AppsV1Api appsApi, String namespace, String helmReleaseName) {
+    this.mode = PodDiscoveryMode.HELM_RELEASE;
     this.coreApi = coreApi;
     this.appsApi = appsApi;
     this.namespace = namespace;
     this.helmReleaseName = helmReleaseName;
+    this.deploymentName = null;
+    this.adminPort = 0;
+  }
+
+  /** Constructor for DEPLOYMENT mode. */
+  TargetSelector(
+      CoreV1Api coreApi,
+      AppsV1Api appsApi,
+      String namespace,
+      String deploymentName,
+      int adminPort) {
+    this.mode = PodDiscoveryMode.DEPLOYMENT;
+    this.coreApi = coreApi;
+    this.appsApi = appsApi;
+    this.namespace = namespace;
+    this.helmReleaseName = null;
+    this.deploymentName = deploymentName;
+    this.adminPort = adminPort;
   }
 
   TargetSnapshot select() throws PauserException {
+    switch (mode) {
+      case HELM_RELEASE:
+        return selectByHelmRelease();
+      case DEPLOYMENT:
+        return selectByDeploymentName();
+      default:
+        throw new AssertionError("Unknown PodDiscoveryMode: " + mode);
+    }
+  }
+
+  private TargetSnapshot selectByHelmRelease() throws PauserException {
     try {
       List<V1Pod> podsCreatedByHelmRelease =
           findPodsCreatedByHelmRelease(namespace, helmReleaseName);
@@ -51,13 +85,72 @@ class TargetSelector {
           findServiceCreatedByHelmReleaseForProduct(
               namespace, helmReleaseName, podsWithSameProduct.product);
 
-      Integer adminPort =
+      Integer port =
           findAdminPortInService(service, podsWithSameProduct.product.getAdminPortName());
 
-      return new TargetSnapshot(podsWithSameProduct.pods, deployment, adminPort);
+      return new TargetSnapshot(podsWithSameProduct.pods, deployment, port);
     } catch (Exception e) {
       throw new PauserException("Can not find any target pods.", e);
     }
+  }
+
+  private TargetSnapshot selectByDeploymentName() throws PauserException {
+    try {
+      V1Deployment deployment = findDeploymentByName(namespace, deploymentName);
+      List<V1Pod> pods = findPodsByDeploymentSelector(namespace, deployment);
+      return new TargetSnapshot(pods, deployment, adminPort);
+    } catch (PauserException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new PauserException("Can not find any target pods.", e);
+    }
+  }
+
+  private V1Deployment findDeploymentByName(String namespace, String name) throws PauserException {
+    try {
+      return appsApi.readNamespacedDeployment(name, namespace, null);
+    } catch (ApiException e) {
+      String m =
+          String.format(
+              "Failed to get deployment %s in namespace %s."
+                  + " Kubernetes API error with code %d and body %s.",
+              name, namespace, e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
+    }
+  }
+
+  private List<V1Pod> findPodsByDeploymentSelector(String namespace, V1Deployment deployment)
+      throws PauserException {
+    Map<String, String> matchLabels = deployment.getSpec().getSelector().getMatchLabels();
+
+    String labelSelector =
+        matchLabels.entrySet().stream()
+            .map(e -> e.getKey() + "=" + e.getValue())
+            .collect(Collectors.joining(","));
+
+    V1PodList podList;
+    try {
+      podList =
+          coreApi.listNamespacedPod(
+              namespace, null, null, null, null, labelSelector, null, null, null, null, null);
+    } catch (ApiException e) {
+      String m =
+          String.format(
+              "Kubernetes listNamespacedPod API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
+    }
+
+    List<V1Pod> pods = podList.getItems();
+    if (pods.isEmpty()) {
+      String m =
+          String.format(
+              "Deployment %s does not have any running pods.",
+              deployment.getMetadata().getName());
+      throw new PauserException(m);
+    }
+
+    return pods;
   }
 
   private List<V1Pod> findPodsCreatedByHelmRelease(String namespace, String releaseName)

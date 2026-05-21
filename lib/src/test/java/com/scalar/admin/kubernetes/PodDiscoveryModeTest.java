@@ -87,5 +87,78 @@ class PodDiscoveryModeTest {
         }
       }
     }
+
+    @Nested
+    @DisplayName("when mode is DEPLOYMENT")
+    class WhenModeIsDeployment {
+
+      @Nested
+      @DisplayName("with valid options (deploymentName and adminPort only)")
+      class WithValidOptions {
+        @Test
+        void doesNotThrowException() {
+          assertThatCode(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, "my-deployment", 60054))
+              .doesNotThrowAnyException();
+        }
+      }
+
+      @Nested
+      @DisplayName("with null deploymentName")
+      class WithNullDeploymentName {
+        @Test
+        void throwsIllegalArgumentException() {
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, null, 60054))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "--deployment-name and --admin-port are required"
+                      + " when --pod-discovery-mode is deployment.");
+        }
+      }
+
+      @Nested
+      @DisplayName("with null adminPort")
+      class WithNullAdminPort {
+        @Test
+        void throwsIllegalArgumentException() {
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, "my-deployment", null))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "--deployment-name and --admin-port are required"
+                      + " when --pod-discovery-mode is deployment.");
+        }
+      }
+
+      @Nested
+      @DisplayName("with both deploymentName and adminPort null")
+      class WithBothNull {
+        @Test
+        void throwsIllegalArgumentException() {
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, null, null))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "--deployment-name and --admin-port are required"
+                      + " when --pod-discovery-mode is deployment.");
+        }
+      }
+
+      @Nested
+      @DisplayName("with helmReleaseName specified")
+      class WithHelmReleaseNameSpecified {
+        @Test
+        void throwsIllegalArgumentException() {
+          assertThatThrownBy(
+                  () ->
+                      PodDiscoveryMode.DEPLOYMENT.validate(
+                          "my-release", "my-deployment", 60054))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "--release-name cannot be used when --pod-discovery-mode is deployment.");
+        }
+      }
+    }
   }
 }

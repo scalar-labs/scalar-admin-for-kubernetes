@@ -1,9 +1,12 @@
 package com.scalar.admin.kubernetes;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +17,8 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1DeploymentSpec;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
@@ -667,5 +672,156 @@ public class TargetSelectorTest {
     service.setSpec(serviceSpec);
 
     return service;
+  }
+
+  private V1Deployment mockDeploymentWithSelector(
+      String name, String resourceVersion, Map<String, String> matchLabels) {
+    V1ObjectMeta metadata = new V1ObjectMeta();
+    metadata.setName(name);
+    metadata.setResourceVersion(resourceVersion);
+
+    V1LabelSelector selector = new V1LabelSelector();
+    selector.setMatchLabels(matchLabels);
+
+    V1DeploymentSpec spec = new V1DeploymentSpec();
+    spec.setSelector(selector);
+
+    V1Deployment deployment = new V1Deployment();
+    deployment.setMetadata(metadata);
+    deployment.setSpec(spec);
+
+    return deployment;
+  }
+
+  @Test
+  public void selectByDeploymentName_NormalCase_ShouldReturnTargetSnapshot() throws Exception {
+    // Arrange
+    String namespace = "namespace";
+    String deploymentName = "my-deployment";
+    int adminPort = 60054;
+
+    Map<String, String> matchLabels = new HashMap<>();
+    matchLabels.put("app", "scalardb");
+
+    V1Deployment deployment = mockDeploymentWithSelector(deploymentName, "1", matchLabels);
+
+    CoreV1Api coreApi = mock(CoreV1Api.class);
+    AppsV1Api appsApi = mock(AppsV1Api.class);
+
+    when(appsApi.readNamespacedDeployment(deploymentName, namespace, null))
+        .thenReturn(deployment);
+
+    List<V1Pod> pods =
+        Arrays.asList(mockPod("pod1", "1", 0, "scalardb"), mockPod("pod2", "2", 0, "scalardb"));
+    V1PodList podList = new V1PodList();
+    podList.setItems(pods);
+
+    when(coreApi.listNamespacedPod(
+            eq(namespace), any(), any(), any(), any(), eq("app=scalardb"),
+            any(), any(), any(), any(), any()))
+        .thenReturn(podList);
+
+    // Act
+    TargetSelector targetSelector =
+        new TargetSelector(coreApi, appsApi, namespace, deploymentName, adminPort);
+    TargetSnapshot target = targetSelector.select();
+
+    // Assert
+    assertThat(target.getAdminPort()).isEqualTo(adminPort);
+    assertThat(target.getPods()).hasSize(2);
+
+    List<String> podNames =
+        target.getPods().stream().map(p -> p.getMetadata().getName()).collect(Collectors.toList());
+    assertThat(podNames).contains("pod1", "pod2");
+  }
+
+  @Test
+  public void selectByDeploymentName_ReadDeploymentThrowApiException_ShouldThrowPauserException()
+      throws Exception {
+    // Arrange
+    String namespace = "namespace";
+    String deploymentName = "my-deployment";
+    int adminPort = 60054;
+
+    CoreV1Api coreApi = mock(CoreV1Api.class);
+    AppsV1Api appsApi = mock(AppsV1Api.class);
+
+    when(appsApi.readNamespacedDeployment(deploymentName, namespace, null))
+        .thenThrow(new ApiException("", 404, null, "not found"));
+
+    // Act & Assert
+    TargetSelector targetSelector =
+        new TargetSelector(coreApi, appsApi, namespace, deploymentName, adminPort);
+
+    assertThatThrownBy(() -> targetSelector.select())
+        .isInstanceOf(PauserException.class)
+        .hasMessageContaining("Failed to get deployment my-deployment in namespace namespace");
+  }
+
+  @Test
+  public void selectByDeploymentName_DeploymentHasNoPods_ShouldThrowPauserException()
+      throws Exception {
+    // Arrange
+    String namespace = "namespace";
+    String deploymentName = "my-deployment";
+    int adminPort = 60054;
+
+    Map<String, String> matchLabels = new HashMap<>();
+    matchLabels.put("app", "scalardb");
+
+    V1Deployment deployment = mockDeploymentWithSelector(deploymentName, "1", matchLabels);
+
+    CoreV1Api coreApi = mock(CoreV1Api.class);
+    AppsV1Api appsApi = mock(AppsV1Api.class);
+
+    when(appsApi.readNamespacedDeployment(deploymentName, namespace, null))
+        .thenReturn(deployment);
+
+    V1PodList emptyPodList = new V1PodList();
+    emptyPodList.setItems(new ArrayList<>());
+
+    when(coreApi.listNamespacedPod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(emptyPodList);
+
+    // Act & Assert
+    TargetSelector targetSelector =
+        new TargetSelector(coreApi, appsApi, namespace, deploymentName, adminPort);
+
+    assertThatThrownBy(() -> targetSelector.select())
+        .isInstanceOf(PauserException.class)
+        .hasMessageContaining("does not have any running pods");
+  }
+
+  @Test
+  public void selectByDeploymentName_ListPodThrowApiException_ShouldThrowPauserException()
+      throws Exception {
+    // Arrange
+    String namespace = "namespace";
+    String deploymentName = "my-deployment";
+    int adminPort = 60054;
+
+    Map<String, String> matchLabels = new HashMap<>();
+    matchLabels.put("app", "scalardb");
+
+    V1Deployment deployment = mockDeploymentWithSelector(deploymentName, "1", matchLabels);
+
+    CoreV1Api coreApi = mock(CoreV1Api.class);
+    AppsV1Api appsApi = mock(AppsV1Api.class);
+
+    when(appsApi.readNamespacedDeployment(deploymentName, namespace, null))
+        .thenReturn(deployment);
+
+    when(coreApi.listNamespacedPod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenThrow(new ApiException("", 500, null, "internal error"));
+
+    // Act & Assert
+    TargetSelector targetSelector =
+        new TargetSelector(coreApi, appsApi, namespace, deploymentName, adminPort);
+
+    assertThatThrownBy(() -> targetSelector.select())
+        .isInstanceOf(PauserException.class)
+        .hasMessageContaining("Kubernetes listNamespacedPod API error");
   }
 }
