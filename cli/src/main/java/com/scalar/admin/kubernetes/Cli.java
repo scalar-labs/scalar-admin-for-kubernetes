@@ -162,7 +162,16 @@ class Cli implements Callable<Integer> {
 
       PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
-      result = new Result(namespace, helmReleaseName, duration, zoneId);
+      switch (podDiscoveryMode) {
+        case HELM_RELEASE:
+          result = new Result(namespace, helmReleaseName, duration, zoneId);
+          break;
+        case DEPLOYMENT:
+          result = new Result(namespace, deploymentName, adminPort, duration, zoneId);
+          break;
+        default:
+          throw new AssertionError("Unknown PodDiscoveryMode: " + podDiscoveryMode);
+      }
       ObjectMapper mapper = new ObjectMapper();
       System.out.println(mapper.writeValueAsString(result));
     } catch (JsonProcessingException e) {

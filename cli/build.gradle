@@ -6,6 +6,17 @@ dependencies {
    implementation project(':lib')
    implementation "info.picocli:picocli:${picocliVersion}"
    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+
+   testImplementation(platform("org.junit:junit-bom:${junitVersion}"))
+   testImplementation 'org.junit.jupiter:junit-jupiter'
+   testImplementation "org.assertj:assertj-core:${assertjVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 shadowJar {
