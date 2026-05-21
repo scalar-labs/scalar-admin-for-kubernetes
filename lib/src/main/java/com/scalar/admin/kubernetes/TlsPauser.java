@@ -12,12 +12,10 @@ public class TlsPauser extends Pauser {
   private final String overrideAuthority;
 
   public TlsPauser(
-      String namespace,
-      String helmReleaseName,
+      TargetSelector targetSelector,
       @Nullable String caRootCert,
-      @Nullable String overrideAuthority)
-      throws PauserException {
-    super(namespace, helmReleaseName);
+      @Nullable String overrideAuthority) {
+    super(targetSelector);
 
     this.caRootCert = caRootCert;
     this.overrideAuthority = overrideAuthority;

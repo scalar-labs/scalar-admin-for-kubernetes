@@ -3,11 +3,6 @@ package com.scalar.admin.kubernetes;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;
-import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.AppsV1Api;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.util.Config;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -66,27 +61,14 @@ public class Pauser {
           + " was taken during this pause duration.";
 
   /**
-   * @param namespace The namespace where the pods are deployed.
-   * @param helmReleaseName The Helm release name used to deploy the pods.
-   * @throws PauserException when the default Kubernetes client fails to be set.
+   * @param targetSelector The target selector to discover pods.
    */
-  public Pauser(String namespace, String helmReleaseName) throws PauserException {
-    if (namespace == null) {
-      throw new IllegalArgumentException("namespace is required");
+  public Pauser(TargetSelector targetSelector) {
+    if (targetSelector == null) {
+      throw new IllegalArgumentException("targetSelector is required");
     }
 
-    if (helmReleaseName == null) {
-      throw new IllegalArgumentException("helmReleaseName is required");
-    }
-
-    try {
-      Configuration.setDefaultApiClient(Config.defaultClient());
-    } catch (IOException e) {
-      throw new PauserException("Failed to set default Kubernetes client.", e);
-    }
-
-    targetSelector =
-        new TargetSelector(new CoreV1Api(), new AppsV1Api(), namespace, helmReleaseName);
+    this.targetSelector = targetSelector;
   }
 
   /**

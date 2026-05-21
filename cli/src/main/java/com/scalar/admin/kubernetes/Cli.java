@@ -33,10 +33,10 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--release-name", "-r"},
       description =
-          "Required. The helm release name that you specify when you run the `helm install"
+          "The helm release name that you specify when you run the `helm install"
               + " <RELEASE_NAME>` command. You can see the <RELEASE_NAME> by using the `helm list`"
-              + " command.",
-      required = true)
+              + " command. Required when --pod-discovery-mode is helm-release.")
+  @Nullable
   private String helmReleaseName;
 
   @Option(
@@ -105,13 +105,27 @@ class Cli implements Callable<Integer> {
 
   @Override
   public Integer call() {
+    // Validate CLI options for the selected pod discovery mode.
+    PodDiscoveryMode podDiscoveryMode = PodDiscoveryMode.HELM_RELEASE;
+    try {
+      podDiscoveryMode.validate(helmReleaseName, null, null);
+    } catch (IllegalArgumentException e) {
+      logger.error(e.getMessage());
+      return 1;
+    }
+
     Result result = null;
 
     try {
+      // Create TargetSelector via factory (K8s client init is handled internally).
+      TargetSelector targetSelector =
+          TargetSelectorFactory.fromHelmRelease(namespace, helmReleaseName);
+
+      // Create Pauser with injected TargetSelector.
       Pauser pauser =
           tlsEnabled
-              ? new TlsPauser(namespace, helmReleaseName, getCaRootCert(), overrideAuthority)
-              : new Pauser(namespace, helmReleaseName);
+              ? new TlsPauser(targetSelector, getCaRootCert(), overrideAuthority)
+              : new Pauser(targetSelector);
 
       PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
