@@ -14,6 +14,7 @@ import com.scalar.admin.kubernetes.domain.exception.StatusCheckFailedException;
 import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.util.Config;
@@ -32,8 +33,8 @@ class PauserTest {
 
   private MockedStatic<Config> mockedConfig;
   private RequestCoordinator requestCoordinator;
-  private TargetSnapshot targetBeforePause;
-  private TargetSnapshot targetAfterPause;
+  private PauseTarget targetBeforePause;
+  private PauseTarget targetAfterPause;
   private V1Deployment deployment;
   private V1ObjectMeta objectMeta;
   private static final String DUMMY_OBJECT_NAME = "dummyObjectName";
@@ -45,11 +46,12 @@ class PauserTest {
     requestCoordinator = mock(RequestCoordinator.class);
     deployment = mock(V1Deployment.class);
     objectMeta = mock(V1ObjectMeta.class);
-    targetBeforePause = mock(TargetSnapshot.class);
-    targetAfterPause = mock(TargetSnapshot.class);
+    targetBeforePause = mock(PauseTarget.class);
+    targetAfterPause = mock(PauseTarget.class);
 
-    doReturn(deployment).when(targetBeforePause).getDeployment();
-    doReturn(deployment).when(targetAfterPause).getDeployment();
+    doReturn(deployment).when(targetBeforePause).deployment();
+    doReturn(deployment).when(targetAfterPause).deployment();
+
     doReturn(objectMeta).when(deployment).getMetadata();
     doReturn(DUMMY_OBJECT_NAME).when(objectMeta).getName();
   }
@@ -128,12 +130,12 @@ class PauserTest {
               put("dummyKey", "dummyValue");
             }
           };
-      TargetStatus beforeTargetStatus =
-          new TargetStatus(podRestartCounts, podResourceVersions, "sameValue");
-      TargetStatus afterTargetStatus =
-          new TargetStatus(podRestartCounts, podResourceVersions, "sameValue");
-      doReturn(beforeTargetStatus).when(targetBeforePause).getStatus();
-      doReturn(afterTargetStatus).when(targetAfterPause).getStatus();
+      PauseTarget.Status beforeTargetStatus =
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "sameValue");
+      PauseTarget.Status afterTargetStatus =
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "sameValue");
+      doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
 
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
@@ -401,12 +403,12 @@ class PauserTest {
               put("dummyKey", "dummyValue");
             }
           };
-      TargetStatus beforeTargetStatus =
-          new TargetStatus(podRestartCounts, podResourceVersions, "beforeDifferentValue");
-      TargetStatus afterTargetStatus =
-          new TargetStatus(podRestartCounts, podResourceVersions, "afterDifferentValue");
-      doReturn(beforeTargetStatus).when(targetBeforePause).getStatus();
-      doReturn(afterTargetStatus).when(targetAfterPause).getStatus();
+      PauseTarget.Status beforeTargetStatus =
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "beforeDifferentValue");
+      PauseTarget.Status afterTargetStatus =
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "afterDifferentValue");
+      doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
 
       doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());

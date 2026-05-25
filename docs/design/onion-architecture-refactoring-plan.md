@@ -69,9 +69,9 @@ cli/src/main/java/com/scalar/admin/kubernetes/
 |-----------|-----------|----------|
 | `Product` | `domain/model/shared/Product.java` | Enum、そのまま移行 |
 | `PodDiscoveryMode` | `domain/model/shared/PodDiscoveryMode.java` | Enum、バリデーションを保持 |
-| `PausedDuration` | `domain/model/pause/PauseDuration.java` | Value Object、record classに変更検討 |
-| `TargetSnapshot` | `domain/model/pause/PauseTarget.java` | 集約ルート、名称変更 |
-| `TargetStatus` | `domain/model/pause/PauseTarget.java` 内部 | TargetStatusをネストクラスに |
+| `PausedDuration` | `domain/model/pause/PauseDuration.java` | Value Object、record classに変更 |
+| `TargetSnapshot` | `domain/model/pause/PauseTarget.java` | 集約ルート、record classで実装、名称変更 |
+| `TargetStatus` | `domain/model/pause/PauseTarget.Status` | nested record classとして内包 |
 | `PauserException` | `domain/exception/DomainException.java` | 基底例外に |
 | `PauseFailedException` | `domain/exception/PauseOperationException.java` | 名称変更 |
 | `UnpauseFailedException` | `domain/exception/UnpauseOperationException.java` | 名称変更 |
@@ -128,8 +128,8 @@ cli/src/main/java/com/scalar/admin/kubernetes/
 
 | # | 既存クラス | 新しい場所 | 理由 |
 |---|-----------|-----------|------|
-| 8 | **PausedDuration.java** | `domain/model/pause/PauseDuration.java` | Value Object、依存なし |
-| 9 | **TargetSnapshot.java** + **TargetStatus.java** | `domain/model/pause/PauseTarget.java` | 集約ルート、TargetStatusを内包 |
+| 8 | **PausedDuration.java** | `domain/model/pause/PauseDuration.java` | Value Object、record class、依存なし |
+| 9 | **TargetSnapshot.java** + **TargetStatus.java** | `domain/model/pause/PauseTarget.java` | 集約ルート、record class、TargetStatusをnested record classとして内包 |
 
 ### Phase 4: インフラ層（Repository実装）
 
@@ -210,12 +210,18 @@ refactor Pause(PausedDuration): migrate to PauseDuration as record
 ```
 refactor Pause(TargetSnapshot): migrate to PauseTarget aggregate
 
+**変更点**:
+- PauseTargetをrecord classとして実装
+- TargetStatusをPauseTarget.Statusとしてnested record classで実装
+- record classのデフォルトアクセサ（pods(), deployment(), adminPort()）を使用
+- getStatus()をtoStatus()に名称変更（変換メソッドの命名規則に合わせる）
+
 - 既存: lib/src/main/java/com/scalar/admin/kubernetes/TargetSnapshot.java
 - 既存: lib/src/main/java/com/scalar/admin/kubernetes/TargetStatus.java
 - 新規: lib/src/main/java/com/scalar/admin/kubernetes/domain/model/pause/PauseTarget.java
-- TargetStatusを内部クラスとして統合
-- テスト移行
-- 旧クラスは一旦保持
+- TargetStatusをPauseTarget.Statusとして統合
+- テスト移行（AssertJ、@Nested/@DisplayName使用）
+- 旧クラス・旧テストを削除
 ```
 
 ### Phase 2: インフラ層の構築（TargetSelectorのリファクタリング）

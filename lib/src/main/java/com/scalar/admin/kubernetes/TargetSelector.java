@@ -1,6 +1,7 @@
 package com.scalar.admin.kubernetes;
 
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.shared.Product;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -37,7 +38,7 @@ class TargetSelector {
     this.helmReleaseName = helmReleaseName;
   }
 
-  TargetSnapshot select() throws PauserException {
+  PauseTarget select() throws PauserException {
     try {
       List<V1Pod> podsCreatedByHelmRelease =
           findPodsCreatedByHelmRelease(namespace, helmReleaseName);
@@ -56,7 +57,7 @@ class TargetSelector {
       Integer adminPort =
           findAdminPortInService(service, podsWithSameProduct.product.getAdminPortName());
 
-      return new TargetSnapshot(podsWithSameProduct.pods, deployment, adminPort);
+      return new PauseTarget(podsWithSameProduct.pods, deployment, adminPort);
     } catch (Exception e) {
       throw new PauserException("Can not find any target pods.", e);
     }

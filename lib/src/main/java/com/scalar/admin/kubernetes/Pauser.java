@@ -10,6 +10,7 @@ import com.scalar.admin.kubernetes.domain.exception.StatusCheckFailedException;
 import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -111,7 +112,7 @@ public class Pauser {
     }
 
     // Get pods and deployment information before pause.
-    TargetSnapshot targetBeforePause;
+    PauseTarget targetBeforePause;
     try {
       targetBeforePause = getTarget();
     } catch (Exception e) {
@@ -148,7 +149,7 @@ public class Pauser {
     }
 
     // Get pods and deployment information after pause.
-    TargetSnapshot targetAfterPause = null;
+    PauseTarget targetAfterPause = null;
     GetTargetAfterPauseFailedException getTargetAfterPauseFailedException = null;
     try {
       targetAfterPause = getTarget();
@@ -207,15 +208,15 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  TargetSnapshot getTarget() throws PauserException {
+  PauseTarget getTarget() throws PauserException {
     return targetSelector.select();
   }
 
   @VisibleForTesting
-  RequestCoordinator getRequestCoordinator(TargetSnapshot target) {
+  RequestCoordinator getRequestCoordinator(PauseTarget target) {
     return new RequestCoordinator(
-        target.getPods().stream()
-            .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.getAdminPort()))
+        target.pods().stream()
+            .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.adminPort()))
             .collect(Collectors.toList()));
   }
 
@@ -231,8 +232,8 @@ public class Pauser {
 
   @VisibleForTesting
   @Nullable
-  StatusUnmatchedException targetStatusEquals(TargetSnapshot before, TargetSnapshot after) {
-    if (before.getStatus().equals(after.getStatus())) {
+  StatusUnmatchedException targetStatusEquals(PauseTarget before, PauseTarget after) {
+    if (before.toStatus().equals(after.toStatus())) {
       return null;
     } else {
       return new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE);
