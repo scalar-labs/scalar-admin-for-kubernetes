@@ -1,4 +1,4 @@
-FROM eclipse-temurin:8-jre
+FROM eclipse-temurin:21-jre
 RUN apt-get update && apt-get upgrade -y \
  && rm -rf /var/lib/apt/lists/*
 

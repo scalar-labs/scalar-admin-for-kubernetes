@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-java@v3
         with:
-          java-version: '8'
+          java-version: '21'
           distribution: 'temurin'
 
       - uses: actions/checkout@v3
@@ -78,9 +78,9 @@ jobs:
 
       - name: Copy Shadow Jar to tester Pod
         run: |
-          kubectl wait --for=condition=Ready pod/java8 --timeout 300s
-          kubectl cp cli/build/libs/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar java8:/tmp
+          kubectl wait --for=condition=Ready pod/java21 --timeout 300s
+          kubectl cp cli/build/libs/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar java21:/tmp
 
       - name: Run Shadow Jar
         run: |
-          kubectl exec -it java8 -- java -jar /tmp/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar -r foo
+          kubectl exec -it java21 -- java -jar /tmp/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar -r foo
