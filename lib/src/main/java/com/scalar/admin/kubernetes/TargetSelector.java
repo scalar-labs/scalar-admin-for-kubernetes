@@ -1,5 +1,6 @@
 package com.scalar.admin.kubernetes;
 
+import com.scalar.admin.kubernetes.domain.model.shared.Product;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
