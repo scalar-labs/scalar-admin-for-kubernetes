@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -559,7 +560,7 @@ public class TargetSelectorTest {
   }
 
   @Test
-  public void select_NormalCase_ShouldReturnTargetSnapshot() throws Exception {
+  public void select_NormalCase_ShouldReturnPauseTarget() throws Exception {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";
@@ -567,12 +568,12 @@ public class TargetSelectorTest {
     // Act
     TargetSelector targetSelector =
         new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
-    TargetSnapshot target = targetSelector.select();
+    PauseTarget target = targetSelector.select();
 
     // Assert
-    assertEquals(1, target.getAdminPort());
+    assertEquals(1, target.adminPort());
 
-    List<V1Pod> pods = target.getPods();
+    List<V1Pod> pods = target.pods();
     assertEquals(2, pods.size());
 
     List<String> podNames =
