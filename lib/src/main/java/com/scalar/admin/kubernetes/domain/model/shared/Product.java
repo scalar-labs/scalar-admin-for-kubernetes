@@ -1,6 +1,6 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.domain.model.shared;
 
-enum Product {
+public enum Product {
   SCALARDB_SERVER("scalardb", "scalardb"),
   SCALARDB_CLUSTER("scalardb-cluster", "scalardb-cluster"),
   SCALARDL_LEDGER("ledger", "scalardl-admin"),
@@ -15,21 +15,21 @@ enum Product {
     this.adminPortName = adminPortName;
   }
 
-  String getAppLabelValue() {
+  public String getAppLabelValue() {
     return appLabelValue;
   }
 
-  String getAdminPortName() {
+  public String getAdminPortName() {
     return adminPortName;
   }
 
-  static Product fromAppLabelValue(String appLabelValue) {
-    for (Product product : Product.values()) {
-      if (product.getAppLabelValue().equals(appLabelValue)) {
-        return product;
-      }
-    }
-
-    return UNKNOWN;
+  public static Product fromAppLabelValue(String appLabelValue) {
+    return switch (appLabelValue) {
+      case "scalardb" -> SCALARDB_SERVER;
+      case "scalardb-cluster" -> SCALARDB_CLUSTER;
+      case "ledger" -> SCALARDL_LEDGER;
+      case "auditor" -> SCALARDL_AUDITOR;
+      default -> UNKNOWN;
+    };
   }
 }
