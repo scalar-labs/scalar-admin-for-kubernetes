@@ -7,6 +7,12 @@ import static org.mockito.Mockito.*;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.RequestCoordinator;
+import com.scalar.admin.kubernetes.domain.exception.GetTargetAfterPauseFailedException;
+import com.scalar.admin.kubernetes.domain.exception.PauseFailedException;
+import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.exception.StatusCheckFailedException;
+import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
+import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.util.Config;

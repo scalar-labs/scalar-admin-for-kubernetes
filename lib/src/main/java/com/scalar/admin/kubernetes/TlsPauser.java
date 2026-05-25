@@ -2,6 +2,7 @@ package com.scalar.admin.kubernetes;
 
 import com.scalar.admin.RequestCoordinator;
 import com.scalar.admin.TlsRequestCoordinator;
+import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import java.net.InetSocketAddress;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
