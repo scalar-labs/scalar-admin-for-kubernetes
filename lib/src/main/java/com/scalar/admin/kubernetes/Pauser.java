@@ -9,6 +9,7 @@ import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.exception.StatusCheckFailedException;
 import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -102,7 +103,7 @@ public class Pauser {
    * @throws PauserException when the pause operation fails.
    * @return The start and end time of the pause operation.
    */
-  public PausedDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
+  public PauseDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
       throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(
@@ -130,7 +131,7 @@ public class Pauser {
     // the end of this method.
 
     // Run a pause operation.
-    PausedDuration pausedDuration = null;
+    PauseDuration pausedDuration = null;
     PauseFailedException pauseFailedException = null;
     try {
       pausedDuration = pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
@@ -219,13 +220,13 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  PausedDuration pauseInternal(
+  PauseDuration pauseInternal(
       RequestCoordinator requestCoordinator, int pauseDuration, @Nullable Long maxPauseWaitTime) {
     requestCoordinator.pause(true, maxPauseWaitTime);
     Instant startTime = Instant.now();
     Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
     Instant endTime = Instant.now();
-    return new PausedDuration(startTime, endTime);
+    return new PauseDuration(startTime, endTime);
   }
 
   @VisibleForTesting
