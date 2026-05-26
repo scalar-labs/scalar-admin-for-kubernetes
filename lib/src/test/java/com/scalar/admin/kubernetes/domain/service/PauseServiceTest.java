@@ -1,12 +1,12 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.domain.service;
 
-import static com.scalar.admin.kubernetes.Pauser.*;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.scalar.admin.RequestCoordinator;
+import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.GetTargetAfterPauseFailedException;
 import com.scalar.admin.kubernetes.domain.exception.PauseFailedException;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
@@ -15,102 +15,26 @@ import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.util.Config;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-class PauserTest {
+class PauseServiceTest {
 
-  private MockedStatic<Config> mockedConfig;
-  private RequestCoordinator requestCoordinator;
+  private ScalarAdminClient client;
   private PauseTarget targetBeforePause;
   private PauseTarget targetAfterPause;
-  private V1Deployment deployment;
-  private V1ObjectMeta objectMeta;
-  private static final String DUMMY_OBJECT_NAME = "dummyObjectName";
 
   @BeforeEach
-  void beforeEach() throws PauserException {
-    mockedConfig = mockStatic(Config.class);
-    mockedConfig.when(() -> Config.defaultClient()).thenReturn(null);
-    requestCoordinator = mock(RequestCoordinator.class);
-    deployment = mock(V1Deployment.class);
-    objectMeta = mock(V1ObjectMeta.class);
+  void beforeEach() {
+    client = mock(ScalarAdminClient.class);
     targetBeforePause = mock(PauseTarget.class);
     targetAfterPause = mock(PauseTarget.class);
-
-    doReturn(deployment).when(targetBeforePause).deployment();
-    doReturn(deployment).when(targetAfterPause).deployment();
-
-    doReturn(objectMeta).when(deployment).getMetadata();
-    doReturn(DUMMY_OBJECT_NAME).when(objectMeta).getName();
-  }
-
-  @AfterEach
-  void afterEach() {
-    mockedConfig.close();
-  }
-
-  @Nested
-  class Constructor {
-    @Test
-    void constructor_WithCorrectArgs_ReturnPauser() throws PauserException, IOException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-
-      // Act & Assert
-      assertDoesNotThrow(() -> new Pauser(namespace, helmReleaseName));
-    }
-
-    @Test
-    void constructor_WithNullNamespace_ShouldThrowIllegalArgumentException() {
-      // Arrange
-      String namespace = null;
-      String helmReleaseName = "dummyRelease";
-
-      // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class, () -> new Pauser(namespace, helmReleaseName));
-      assertEquals("namespace is required", thrown.getMessage());
-    }
-
-    @Test
-    void constructor_WithNullHelmReleaseName_ShouldThrowIllegalArgumentException() {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = null;
-
-      // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class, () -> new Pauser(namespace, helmReleaseName));
-      assertEquals("helmReleaseName is required", thrown.getMessage());
-    }
-
-    @Test
-    void constructor_WhenSetDefaultApiClientThrowIOException_ShouldThrowPauserException() {
-      // Arrange
-      mockedConfig.when(() -> Config.defaultClient()).thenThrow(IOException.class);
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-
-      // Act & Assert
-      PauserException thrown =
-          assertThrows(PauserException.class, () -> new Pauser(namespace, helmReleaseName));
-      assertEquals("Failed to set default Kubernetes client.", thrown.getMessage());
-    }
   }
 
   @Nested
@@ -118,6 +42,7 @@ class PauserTest {
 
     @Test
     void pause_WhenPauseSucceeded_ReturnPauseDuration() throws PauserException {
+      // Arrange
       Map<String, Integer> podRestartCounts =
           new HashMap<String, Integer>() {
             {
@@ -142,17 +67,19 @@ class PauserTest {
       MockedStatic<Instant> mockedTime = mockStatic(Instant.class);
       mockedTime.when(() -> Instant.now()).thenReturn(startTime).thenReturn(endTime);
 
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(requestCoordinator).pause(true, null);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
+      PauseService service = spy(new PauseService());
+      doNothing().when(client).pause(true, null);
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
 
-      // Act & Assert
-      PauseDuration actual = assertDoesNotThrow(() -> pauser.pause(pauseDuration, 3000L));
+      // Act
+      PauseDuration actual =
+          assertDoesNotThrow(
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, 3000L));
+
+      // Assert
       PauseDuration expected = new PauseDuration(startTime, endTime);
       assertEquals(actual.startTime(), expected.startTime());
       assertEquals(actual.endTime(), expected.endTime());
@@ -161,93 +88,39 @@ class PauserTest {
     }
 
     @Test
-    void pause_LessThanOnePauseDuration_ShouldThrowIllegalArgumentException()
-        throws PauserException {
+    void pause_LessThanOnePauseDuration_ShouldThrowIllegalArgumentException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 0;
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
+      PauseService service = new PauseService();
 
       // Act & Assert
       IllegalArgumentException thrown =
-          assertThrows(IllegalArgumentException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              IllegalArgumentException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(
           "pauseDuration is required to be greater than 0 millisecond.", thrown.getMessage());
     }
 
     @Test
-    void pause_WhenFirstGetTargetThrowException_ShouldThrowPauserException()
+    void pause_WhenClientPauseThrowException_ShouldThrowPauseFailedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doThrow(RuntimeException.class).when(pauser).getTarget();
-
-      // Act & Assert
-      PauserException thrown =
-          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals("Failed to find the target pods to pause.", thrown.getMessage());
-    }
-
-    @Test
-    void pause_WhenGetRequestCoordinatorThrowException_ShouldThrowPauserException()
-        throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).when(pauser).getTarget();
-      doThrow(RuntimeException.class).when(pauser).getRequestCoordinator(targetBeforePause);
-
-      // Act & Assert
-      PauserException thrown =
-          assertThrows(PauserException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals("Failed to initialize the request coordinator.", thrown.getMessage());
-    }
-
-    @Test
-    void pause_WhenPauseInternalThrowException_ShouldThrowPauseFailedException()
-        throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .pauseInternal(requestCoordinator, pauseDuration, null);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
+      PauseService service = spy(new PauseService());
+      doThrow(RuntimeException.class).when(client).pause(true, null);
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+      doReturn(null).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
-          assertThrows(PauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
-    }
-
-    @Test
-    void pause_WhenRequestCoordinatorPauseThrowException_ShouldThrowPauseFailedException()
-        throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doThrow(RuntimeException.class).when(requestCoordinator).pause(true, null);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
-
-      // Act & Assert
-      PauseFailedException thrown =
-          assertThrows(PauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              PauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
     }
 
@@ -257,18 +130,18 @@ class PauserTest {
       // Arrange
       MockedStatic<Instant> mockedTime = mockStatic(Instant.class);
       mockedTime.when(() -> Instant.now()).thenThrow(RuntimeException.class);
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
+      PauseService service = spy(new PauseService());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+      doReturn(null).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
-          assertThrows(PauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              PauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
 
       mockedTime.close();
@@ -282,17 +155,17 @@ class PauserTest {
       mockedSleep
           .when(() -> Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS))
           .thenThrow(RuntimeException.class);
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
+      PauseService service = spy(new PauseService());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+      doReturn(null).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       PauseFailedException thrown =
-          assertThrows(PauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              PauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
 
       mockedSleep.close();
@@ -302,51 +175,53 @@ class PauserTest {
     void pause_WhenUnpauseWithRetryThrowException_ShouldThrowUnpauseFailedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
 
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PauseService service = spy(new PauseService());
       PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
       doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
+          .when(service)
+          .unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT);
+      doReturn(null).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              UnpauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
     }
 
     @Test
-    void pause_WhenSecondGetTargetThrowException_ShouldThrowGetTargetAfterPauseFailedException()
+    void pause_WhenGetTargetAfterPauseThrowException_ShouldThrowGetTargetAfterPauseFailedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
 
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PauseService service = spy(new PauseService());
       PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
-      doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+
+      PauseService.PauseTargetSupplier supplier =
+          () -> {
+            throw new RuntimeException();
+          };
 
       // Act & Assert
       GetTargetAfterPauseFailedException thrown =
           assertThrows(
-              GetTargetAfterPauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+              GetTargetAfterPauseFailedException.class,
+              () -> service.pause(targetBeforePause, supplier, client, pauseDuration, null));
       assertEquals(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, thrown.getMessage());
     }
 
@@ -354,24 +229,24 @@ class PauserTest {
     void pause_WhenTargetStatusEqualsThrowException_ShouldThrowStatusCheckFailedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
 
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PauseService service = spy(new PauseService());
       PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doThrow(RuntimeException.class).when(pauser).targetStatusEquals(any(), any());
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+      doThrow(RuntimeException.class).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       StatusCheckFailedException thrown =
-          assertThrows(StatusCheckFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              StatusCheckFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(STATUS_CHECK_ERROR_MESSAGE, thrown.getMessage());
     }
 
@@ -379,17 +254,15 @@ class PauserTest {
     void pause_WhenTargetPodStatusChanged_ShouldThrowStatusUnmatchedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
       Instant startTime = Instant.now().minus(5, SECONDS);
       Instant endTime = Instant.now().plus(5, SECONDS);
 
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
+      PauseService service = spy(new PauseService());
       PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
 
       Map<String, Integer> podRestartCounts =
           new HashMap<String, Integer>() {
@@ -410,12 +283,13 @@ class PauserTest {
       doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
       doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
 
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-
       // Act & Assert
       StatusUnmatchedException thrown =
-          assertThrows(StatusUnmatchedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              StatusUnmatchedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(STATUS_UNMATCHED_ERROR_MESSAGE, thrown.getMessage());
     }
 
@@ -423,204 +297,59 @@ class PauserTest {
     void pause_WhenPauseAndUnpauseThrowException_ShouldThrowUnpauseFailedException()
         throws PauserException {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
       int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
+      PauseService service = spy(new PauseService());
+      doThrow(RuntimeException.class).when(service).pauseInternal(any(), anyInt(), any());
       doThrow(RuntimeException.class)
-          .when(pauser)
-          .pauseInternal(requestCoordinator, pauseDuration, null);
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(null).when(pauser).targetStatusEquals(any(), any());
+          .when(service)
+          .unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT);
+      doReturn(null).when(service).targetStatusEquals(any(), any());
 
       // Act & Assert
       UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
+          assertThrows(
+              UnpauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
       assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
       assertEquals(PauseFailedException.class, thrown.getSuppressed()[0].getClass());
-    }
-
-    @Test
-    void
-        pause_WhenSecondGetTargetAndUnpauseWithRetryThrowException_ShouldThrowUnpauseFailedException()
-            throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Instant startTime = Instant.now().minus(5, SECONDS);
-      Instant endTime = Instant.now().plus(5, SECONDS);
-
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
-
-      doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-
-      // Act & Assert
-      UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
-      assertEquals(GetTargetAfterPauseFailedException.class, thrown.getSuppressed()[0].getClass());
-    }
-
-    @Test
-    void
-        pause_WhenTargetStatusEqualsAndUnpauseWithRetryThrowException_ShouldThrowUnpauseFailedException()
-            throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Instant startTime = Instant.now().minus(5, SECONDS);
-      Instant endTime = Instant.now().plus(5, SECONDS);
-
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
-
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doThrow(RuntimeException.class).when(pauser).targetStatusEquals(any(), any());
-
-      // Act & Assert
-      UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
-      assertEquals(StatusCheckFailedException.class, thrown.getSuppressed()[0].getClass());
-    }
-
-    @Test
-    void pause_WhenUnpauseFailedAndTargetPodStatusChanged_ShouldThrowUnpauseFailedException()
-        throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Instant startTime = Instant.now().minus(5, SECONDS);
-      Instant endTime = Instant.now().plus(5, SECONDS);
-
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
-
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doReturn(pausedDuration).when(pauser).pauseInternal(any(), anyInt(), anyLong());
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
-          .when(pauser)
-          .targetStatusEquals(any(), any());
-
-      // Act & Assert
-      UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
-      assertEquals(StatusUnmatchedException.class, thrown.getSuppressed()[0].getClass());
-    }
-
-    @Test
-    void pause_WhenPauseAndUnpauseAndTargetPodStatusChanged_ShouldThrowUnpauseFailedException()
-        throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .pauseInternal(requestCoordinator, pauseDuration, null);
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
-      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
-          .when(pauser)
-          .targetStatusEquals(any(), any());
-
-      // Act & Assert
-      UnpauseFailedException thrown =
-          assertThrows(UnpauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
-    }
-
-    @Test
-    void pause_WhenPauseFailedAndTargetPodStatusChanged_ShouldThrowPauseFailedException()
-        throws PauserException { // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      int pauseDuration = 1;
-      Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
-      doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
-      doThrow(RuntimeException.class)
-          .when(pauser)
-          .pauseInternal(requestCoordinator, pauseDuration, null);
-      doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
-      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
-          .when(pauser)
-          .targetStatusEquals(any(), any());
-
-      // Act & Assert
-      PauseFailedException thrown =
-          assertThrows(PauseFailedException.class, () -> pauser.pause(pauseDuration, null));
-      assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
     }
   }
 
   @Nested
   class UnpauseWithRetry {
     @Test
-    void unpauseWithRetry_WhenUnpauseSucceeded_ReturnWithoutException() throws PauserException {
+    void unpauseWithRetry_WhenUnpauseSucceeded_ReturnWithoutException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-      doNothing().when(requestCoordinator).unpause();
+      PauseService service = new PauseService();
+      doNothing().when(client).unpause();
 
       // Act & Assert
-      assertDoesNotThrow(
-          () -> pauser.unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT));
+      assertDoesNotThrow(() -> service.unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT));
     }
 
     @Test
-    void unpauseWithRetry_WhenExceptionOccur_ShouldRetryThreeTimes() throws PauserException {
+    void unpauseWithRetry_WhenExceptionOccur_ShouldRetryThreeTimes() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-      doThrow(RuntimeException.class).when(requestCoordinator).unpause();
+      PauseService service = new PauseService();
+      doThrow(RuntimeException.class).when(client).unpause();
 
       // Act & Assert
       RuntimeException thrown =
           assertThrows(
               RuntimeException.class,
-              () -> pauser.unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT));
-      verify(requestCoordinator, times(MAX_UNPAUSE_RETRY_COUNT)).unpause();
+              () -> service.unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT));
+      verify(client, times(MAX_UNPAUSE_RETRY_COUNT)).unpause();
     }
   }
 
   @Nested
-  class buildException {
+  class BuildException {
     @Test
-    void buildException_00000_ReturnNull() throws PauserException {
+    void buildException_00000_ReturnNull() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
+      PauseService service = new PauseService();
 
       UnpauseFailedException unpauseFailedException = null;
       PauseFailedException pauseFailedException = null;
@@ -630,7 +359,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -642,12 +371,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00001_ThrowException() throws PauserException {
+    void buildException_00001_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -659,7 +385,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -671,12 +397,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00010_ThrowException() throws PauserException {
+    void buildException_00010_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -688,7 +411,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -700,12 +423,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00011_ThrowException() throws PauserException {
+    void buildException_00011_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -718,7 +438,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -731,12 +451,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00100_ThrowException() throws PauserException {
+    void buildException_00100_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -748,7 +465,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -760,43 +477,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00110_ThrowException() throws PauserException {
+    void buildException_00101_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
-      String dummyMessage = "dummyMessage";
-
-      UnpauseFailedException unpauseFailedException = null;
-      PauseFailedException pauseFailedException = null;
-      GetTargetAfterPauseFailedException getTargetAfterPauseFailedException =
-          new GetTargetAfterPauseFailedException(dummyMessage);
-      StatusCheckFailedException statusCheckFailedException =
-          new StatusCheckFailedException(dummyMessage);
-      StatusUnmatchedException statusUnmatchedException = null;
-
-      // Act
-      Exception actual =
-          pauser.buildException(
-              unpauseFailedException,
-              pauseFailedException,
-              getTargetAfterPauseFailedException,
-              statusCheckFailedException,
-              statusUnmatchedException);
-
-      // Assert
-      assertEquals(GetTargetAfterPauseFailedException.class, actual.getClass());
-      assertEquals(StatusCheckFailedException.class, actual.getSuppressed()[0].getClass());
-    }
-
-    @Test
-    void buildException_00101_ThrowException() throws PauserException {
-      // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -809,7 +492,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -822,12 +505,37 @@ class PauserTest {
     }
 
     @Test
-    void buildException_00111_ThrowException() throws PauserException {
+    void buildException_00110_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
+      PauseService service = new PauseService();
+      String dummyMessage = "dummyMessage";
 
+      UnpauseFailedException unpauseFailedException = null;
+      PauseFailedException pauseFailedException = null;
+      GetTargetAfterPauseFailedException getTargetAfterPauseFailedException =
+          new GetTargetAfterPauseFailedException(dummyMessage);
+      StatusCheckFailedException statusCheckFailedException =
+          new StatusCheckFailedException(dummyMessage);
+      StatusUnmatchedException statusUnmatchedException = null;
+
+      // Act
+      Exception actual =
+          service.buildException(
+              unpauseFailedException,
+              pauseFailedException,
+              getTargetAfterPauseFailedException,
+              statusCheckFailedException,
+              statusUnmatchedException);
+
+      // Assert
+      assertEquals(GetTargetAfterPauseFailedException.class, actual.getClass());
+      assertEquals(StatusCheckFailedException.class, actual.getSuppressed()[0].getClass());
+    }
+
+    @Test
+    void buildException_00111_ThrowException() {
+      // Arrange
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -841,7 +549,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -855,12 +563,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01000_ThrowException() throws PauserException {
+    void buildException_01000_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -871,7 +576,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -883,12 +588,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01001_ThrowException() throws PauserException {
+    void buildException_01001_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -900,7 +602,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -913,14 +615,11 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01010_ThrowException() throws PauserException {
+    void buildException_01010_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
+
       UnpauseFailedException unpauseFailedException = null;
       PauseFailedException pauseFailedException = new PauseFailedException(dummyMessage);
       GetTargetAfterPauseFailedException getTargetAfterPauseFailedException = null;
@@ -930,7 +629,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -943,12 +642,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01011_ThrowException() throws PauserException {
+    void buildException_01011_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -961,7 +657,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -975,12 +671,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01100_ThrowException() throws PauserException {
+    void buildException_01100_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -992,7 +685,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1005,12 +698,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01101_ThrowException() throws PauserException {
+    void buildException_01101_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -1023,7 +713,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1037,12 +727,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01110_ThrowException() throws PauserException {
+    void buildException_01110_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -1055,7 +742,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1069,12 +756,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_01111_ThrowException() throws PauserException {
+    void buildException_01111_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = null;
@@ -1088,7 +772,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1103,13 +787,11 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10000_ThrowException() throws PauserException {
+    void buildException_10000_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
+
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
       PauseFailedException pauseFailedException = null;
       GetTargetAfterPauseFailedException getTargetAfterPauseFailedException = null;
@@ -1118,7 +800,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1130,12 +812,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10001_ThrowException() throws PauserException {
+    void buildException_10001_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1147,7 +826,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1160,12 +839,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10010_ThrowException() throws PauserException {
+    void buildException_10010_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1177,7 +853,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1190,12 +866,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10011_ThrowException() throws PauserException {
+    void buildException_10011_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1208,7 +881,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1222,12 +895,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10100_ThrowException() throws PauserException {
+    void buildException_10100_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1239,7 +909,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1252,12 +922,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10101_ThrowException() throws PauserException {
+    void buildException_10101_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1270,7 +937,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1284,12 +951,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10110_ThrowException() throws PauserException {
+    void buildException_10110_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1302,7 +966,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1316,12 +980,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_10111_ThrowException() throws PauserException {
+    void buildException_10111_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1335,7 +996,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1350,12 +1011,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11000_ThrowException() throws PauserException {
+    void buildException_11000_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1366,7 +1024,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1379,12 +1037,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11001_ThrowException() throws PauserException {
+    void buildException_11001_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1396,7 +1051,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1410,12 +1065,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11010_ThrowException() throws PauserException {
+    void buildException_11010_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1427,7 +1079,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1441,12 +1093,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11011_ThrowException() throws PauserException {
+    void buildException_11011_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1459,7 +1108,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1474,12 +1123,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11100_ThrowException() throws PauserException {
+    void buildException_11100_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1491,7 +1137,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1505,12 +1151,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11101_ThrowException() throws PauserException {
+    void buildException_11101_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1523,7 +1166,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1538,12 +1181,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11110_ThrowException() throws PauserException {
+    void buildException_11110_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1556,7 +1196,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
@@ -1571,12 +1211,9 @@ class PauserTest {
     }
 
     @Test
-    void buildException_11111_ThrowException() throws PauserException {
+    void buildException_11111_ThrowException() {
       // Arrange
-      String namespace = "dummyNs";
-      String helmReleaseName = "dummyRelease";
-      Pauser pauser = new Pauser(namespace, helmReleaseName);
-
+      PauseService service = new PauseService();
       String dummyMessage = "dummyMessage";
 
       UnpauseFailedException unpauseFailedException = new UnpauseFailedException(dummyMessage);
@@ -1590,7 +1227,7 @@ class PauserTest {
 
       // Act
       Exception actual =
-          pauser.buildException(
+          service.buildException(
               unpauseFailedException,
               pauseFailedException,
               getTargetAfterPauseFailedException,
