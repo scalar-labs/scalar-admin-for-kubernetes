@@ -1,8 +1,9 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.infrastructure.repository;
 
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.shared.Product;
+import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -19,32 +20,30 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
+/** Implementation of {@link PauseTargetRepository} using Kubernetes Java Client API. */
 @ThreadSafe
-class TargetSelector {
+public class PauseTargetRepositoryImpl implements PauseTargetRepository {
 
+  // MAYBE: Consider moving these to domain layer as value objects if they need to be configurable
   static final String LABEL_INSTANCE = "app.kubernetes.io/instance";
   static final String LABEL_APP = "app.kubernetes.io/app";
   static final String ADMIN_SERVICE_NAME_SUFFIX = "-headless";
 
   private final CoreV1Api coreApi;
   private final AppsV1Api appsApi;
-  private final String namespace;
-  private final String helmReleaseName;
 
-  TargetSelector(CoreV1Api coreApi, AppsV1Api appsApi, String namespace, String helmReleaseName) {
+  public PauseTargetRepositoryImpl(CoreV1Api coreApi, AppsV1Api appsApi) {
     this.coreApi = coreApi;
     this.appsApi = appsApi;
-    this.namespace = namespace;
-    this.helmReleaseName = helmReleaseName;
   }
 
-  PauseTarget select() throws PauserException {
+  @Override
+  public PauseTarget findByHelmRelease(String namespace, String helmReleaseName)
+      throws PauserException {
     try {
-      List<V1Pod> podsCreatedByHelmRelease =
-          findPodsCreatedByHelmRelease(namespace, helmReleaseName);
+      List<V1Pod> podsCreatedByHelmRelease = findPodsCreatedByHelmRelease(namespace, helmReleaseName);
 
-      PodsWithSameProduct podsWithSameProduct =
-          selectPodsRunScalarProduct(podsCreatedByHelmRelease);
+      PodsWithSameProduct podsWithSameProduct = selectPodsRunScalarProduct(podsCreatedByHelmRelease);
 
       V1Deployment deployment =
           findDeploymentCreatedByHelmReleaseForProduct(
@@ -54,7 +53,7 @@ class TargetSelector {
           findServiceCreatedByHelmReleaseForProduct(
               namespace, helmReleaseName, podsWithSameProduct.product);
 
-      Integer adminPort =
+      int adminPort =
           findAdminPortInService(service, podsWithSameProduct.product.getAdminPortName());
 
       return new PauseTarget(podsWithSameProduct.pods, deployment, adminPort);
@@ -191,8 +190,9 @@ class TargetSelector {
   /**
    * This method filters the givens pods and returns a list of pods of the same Scalar product
    * (i.e., having the same app.kubernetes.io/app value). What value of app.kubernetes.io/app is
-   * used depends on the first pod having the value of Scalar products. The other pods, for example,
-   * an Envoy pod, will be excluded. An exception is thrown if there are pods of different products.
+   * used depends on the first pod having the value of Scalar products. The other pods, for
+   * example, an Envoy pod, will be excluded. An exception is thrown if there are pods of different
+   * products.
    */
   private PodsWithSameProduct selectPodsRunScalarProduct(List<V1Pod> pods) throws PauserException {
 
@@ -247,8 +247,7 @@ class TargetSelector {
     return new PodsWithSameProduct(productThesePodsRun, selected);
   }
 
-  private Integer findAdminPortInService(V1Service service, String portName)
-      throws PauserException {
+  private int findAdminPortInService(V1Service service, String portName) throws PauserException {
     V1ServicePort servicePort =
         service.getSpec().getPorts().stream()
             .filter(p -> p.getName().equals(portName))

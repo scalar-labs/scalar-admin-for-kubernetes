@@ -1,4 +1,4 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.infrastructure.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TargetSelectorTest {
+public class PauseTargetRepositoryImplTest {
 
   private CoreV1Api coreV1Api;
   private AppsV1Api appsV1Api;
@@ -47,6 +47,7 @@ public class TargetSelectorTest {
     mockAppsV1Api();
   }
 
+  
   @Test
   public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowPauserException()
       throws ApiException {
@@ -69,10 +70,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -102,10 +103,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -144,10 +145,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -182,10 +183,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -220,10 +221,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -253,10 +254,10 @@ public class TargetSelectorTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -287,10 +288,10 @@ public class TargetSelectorTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -317,10 +318,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -347,10 +348,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -380,10 +381,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -419,10 +420,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -462,10 +463,10 @@ public class TargetSelectorTest {
         .thenReturn(seriveList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -504,10 +505,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -551,10 +552,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.findByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -566,9 +567,9 @@ public class TargetSelectorTest {
     String helmReleaseName = "helmReleaseName";
 
     // Act
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
-    PauseTarget target = targetSelector.select();
+    PauseTargetRepositoryImpl repository =
+        new PauseTargetRepositoryImpl(coreV1Api, appsV1Api);
+    PauseTarget target = repository.findByHelmRelease(namespace, helmReleaseName);
 
     // Assert
     assertEquals(1, target.adminPort());
