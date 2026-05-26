@@ -11,6 +11,8 @@ import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
+import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
+import com.scalar.admin.kubernetes.infrastructure.repository.PauseTargetRepositoryImpl;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -43,7 +45,9 @@ public class Pauser {
 
   @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
 
-  private final TargetSelector targetSelector;
+  private final PauseTargetRepository pauseTargetRepository;
+  private final String namespace;
+  private final String helmReleaseName;
 
   @VisibleForTesting
   static final String UNPAUSE_ERROR_MESSAGE =
@@ -93,8 +97,10 @@ public class Pauser {
       throw new PauserException("Failed to set default Kubernetes client.", e);
     }
 
-    targetSelector =
-        new TargetSelector(new CoreV1Api(), new AppsV1Api(), namespace, helmReleaseName);
+    this.namespace = namespace;
+    this.helmReleaseName = helmReleaseName;
+    this.pauseTargetRepository =
+        new PauseTargetRepositoryImpl(new CoreV1Api(), new AppsV1Api());
   }
 
   /**
@@ -209,7 +215,7 @@ public class Pauser {
 
   @VisibleForTesting
   PauseTarget getTarget() throws PauserException {
-    return targetSelector.select();
+    return pauseTargetRepository.findByHelmRelease(namespace, helmReleaseName);
   }
 
   @VisibleForTesting

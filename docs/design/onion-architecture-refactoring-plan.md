@@ -78,7 +78,7 @@ cli/src/main/java/com/scalar/admin/kubernetes/
 | その他Exception | `domain/exception/` | 適切な名称に変更 |
 | `Pauser` | `application/pause/PauseApplicationService.java` | アプリケーションサービスに |
 | `TlsPauser` | `infrastructure/admin/ScalarAdminClientAdapter.java` | インフラ層に |
-| `TargetSelector` | `infrastructure/kubernetes/` | Repository実装に分割 |
+| `TargetSelector` | `domain/repository/PauseTargetRepository.java` (interface)<br/>`infrastructure/repository/PauseTargetRepositoryImpl.java` | Repositoryパターンで実装 |
 
 ## 作業方針
 
@@ -135,7 +135,7 @@ cli/src/main/java/com/scalar/admin/kubernetes/
 
 | # | 既存クラス | 新しい場所 | 理由 |
 |---|-----------|-----------|------|
-| 10 | **TargetSelector.java** | `infrastructure/kubernetes/repository/` | Repository実装に分割 |
+| 10 | **TargetSelector.java** | `domain/repository/PauseTargetRepository.java` (interface)<br/>`infrastructure/repository/PauseTargetRepositoryImpl.java` (implementation) | Repository パターンで実装 |
 
 ### Phase 5: アプリケーション層とインフラ層
 
@@ -228,20 +228,26 @@ refactor Pause(TargetSnapshot): migrate to PauseTarget aggregate
 
 #### 2-1. TargetSelector.javaのリファクタリング（Repository実装への分割）
 ```
-refactor Pause(TargetSelector): split into repository implementations
+refactor Pause(TargetSelector): migrate to repository pattern
+
+**変更点**:
+- PauseTarget集約に対応する単一のRepositoryとして実装
+- namespaceとhelmReleaseNameをfindByHelmReleaseメソッドの引数に変更
+- 固定値（LABEL_INSTANCE, LABEL_APP, ADMIN_SERVICE_NAME_SUFFIX）はinfrastructure層に保持
+  (将来的にdomain層への移行を検討する可能性あり - MAYBEコメント追加)
+
+**注記**: 将来的に新しいAPIや機能を追加する際には、DeploymentRepository、
+K8sServiceRepository、PodRepository等のより細かい粒度のRepositoryを追加する可能性がある。
 
 - 既存: lib/src/main/java/com/scalar/admin/kubernetes/TargetSelector.java
-- 新規: 以下に分割
-  - domain/repository/PodRepository.java (interface)
-  - domain/repository/DeploymentRepository.java (interface)
-  - domain/repository/K8sServiceRepository.java (interface)
-  - infrastructure/kubernetes/repository/PodRepositoryImpl.java
-  - infrastructure/kubernetes/repository/DeploymentRepositoryImpl.java
-  - infrastructure/kubernetes/repository/K8sServiceRepositoryImpl.java
-  - infrastructure/kubernetes/KubernetesClientConfig.java
-- TargetSelectorの各メソッドを適切なRepositoryに分割
-- テスト分割・移行
-- 旧クラスは一旦保持
+- 新規:
+  - domain/repository/PauseTargetRepository.java (interface)
+    - findByHelmRelease(namespace, helmReleaseName): PauseTarget
+  - infrastructure/repository/PauseTargetRepositoryImpl.java (implementation)
+    - TargetSelectorのロジックをそのまま移行
+    - CoreV1Api, AppsV1Apiに依存
+- テスト移行: TargetSelectorTest → PauseTargetRepositoryImplTest
+- 旧クラス削除
 ```
 
 ### Phase 3: アプリケーション層の構築（Pauser.javaのリファクタリング）
