@@ -3,6 +3,7 @@ package com.scalar.admin.kubernetes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
+import com.scalar.admin.kubernetes.presentation.PauseController;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -109,12 +110,24 @@ class Cli implements Callable<Integer> {
     Result result = null;
 
     try {
-      Pauser pauser =
-          tlsEnabled
-              ? new TlsPauser(namespace, helmReleaseName, getCaRootCert(), overrideAuthority)
-              : new Pauser(namespace, helmReleaseName);
+      // Create controller
+      PauseController controller = new PauseController();
 
-      PauseDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
+      // Execute pause operation
+      PauseDuration duration;
+      if (tlsEnabled) {
+        duration =
+            controller.pauseByHelmReleaseWithTls(
+                namespace,
+                helmReleaseName,
+                pauseDuration,
+                maxPauseWaitTime,
+                getCaRootCert(),
+                overrideAuthority);
+      } else {
+        duration =
+            controller.pauseByHelmRelease(namespace, helmReleaseName, pauseDuration, maxPauseWaitTime);
+      }
 
       result = new Result(namespace, helmReleaseName, duration, zoneId);
       ObjectMapper mapper = new ObjectMapper();

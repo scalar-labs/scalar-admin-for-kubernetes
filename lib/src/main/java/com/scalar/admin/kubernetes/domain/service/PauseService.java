@@ -1,8 +1,8 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.domain.service;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.scalar.admin.RequestCoordinator;
+import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.GetTargetAfterPauseFailedException;
 import com.scalar.admin.kubernetes.domain.exception.PauseFailedException;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
@@ -11,43 +11,32 @@ import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
-import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
-import com.scalar.admin.kubernetes.infrastructure.repository.PauseTargetRepositoryImpl;
-import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.AppsV1Api;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.util.Config;
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
- * This class implements a pause operation for Scalar product pods in a Kubernetes cluster. The
- * pause operation consists of the following steps:
+ * Domain service for pause operations on Scalar product pods.
+ *
+ * <p>This service encapsulates the business logic for pausing and unpausing Scalar product pods,
+ * including retry logic, error priority handling, and status validation. The pause operation
+ * consists of the following steps:
  *
  * <ol>
- *   <li>Find the target pods to pause.
- *   <li>Pause the target pods.
+ *   <li>Pause the target pods using the provided client.
  *   <li>Wait for the specified duration.
- *   <li>Unpause the target pods.
- *   <li>Check if the target pods were updated during the pause operation.
+ *   <li>Unpause the target pods (with retry).
+ *   <li>Validate that the target pods were not updated during the pause operation.
  * </ol>
  *
- * Please note that this class is not thread-safe because the `pause` method causes side effects in
- * the states of target pods.
+ * <p>This class is not thread-safe because the pause operation causes side effects in the states of
+ * target pods.
  */
 @NotThreadSafe
-public class Pauser {
+public class PauseService {
 
   @VisibleForTesting static final int MAX_UNPAUSE_RETRY_COUNT = 3;
-
-  private final PauseTargetRepository pauseTargetRepository;
-  private final String namespace;
-  private final String helmReleaseName;
 
   @VisibleForTesting
   static final String UNPAUSE_ERROR_MESSAGE =
@@ -78,59 +67,27 @@ public class Pauser {
           + " was taken during this pause duration.";
 
   /**
-   * @param namespace The namespace where the pods are deployed.
-   * @param helmReleaseName The Helm release name used to deploy the pods.
-   * @throws PauserException when the default Kubernetes client fails to be set.
+   * Executes a pause operation on the target pods.
+   *
+   * @param targetBeforePause the pause target before the pause operation
+   * @param targetAfterPauseSupplier supplier to get the target after the pause operation
+   * @param client the Scalar Admin client for pause/unpause operations
+   * @param pauseDuration the duration to pause in milliseconds
+   * @param maxPauseWaitTime the max wait time (in milliseconds) until Scalar products drain
+   *     outstanding requests, null for default
+   * @return the start and end time of the pause operation
+   * @throws PauserException when the pause operation fails
    */
-  public Pauser(String namespace, String helmReleaseName) throws PauserException {
-    if (namespace == null) {
-      throw new IllegalArgumentException("namespace is required");
-    }
-
-    if (helmReleaseName == null) {
-      throw new IllegalArgumentException("helmReleaseName is required");
-    }
-
-    try {
-      Configuration.setDefaultApiClient(Config.defaultClient());
-    } catch (IOException e) {
-      throw new PauserException("Failed to set default Kubernetes client.", e);
-    }
-
-    this.namespace = namespace;
-    this.helmReleaseName = helmReleaseName;
-    this.pauseTargetRepository =
-        new PauseTargetRepositoryImpl(new CoreV1Api(), new AppsV1Api());
-  }
-
-  /**
-   * @param pauseDuration The duration to pause in milliseconds.
-   * @param maxPauseWaitTime The max wait time (in milliseconds) until Scalar products drain
-   *     outstanding requests before they pause.
-   * @throws PauserException when the pause operation fails.
-   * @return The start and end time of the pause operation.
-   */
-  public PauseDuration pause(int pauseDuration, @Nullable Long maxPauseWaitTime)
+  public PauseDuration pause(
+      PauseTarget targetBeforePause,
+      PauseTargetSupplier targetAfterPauseSupplier,
+      ScalarAdminClient client,
+      int pauseDuration,
+      @Nullable Long maxPauseWaitTime)
       throws PauserException {
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(
           "pauseDuration is required to be greater than 0 millisecond.");
-    }
-
-    // Get pods and deployment information before pause.
-    PauseTarget targetBeforePause;
-    try {
-      targetBeforePause = getTarget();
-    } catch (Exception e) {
-      throw new PauserException("Failed to find the target pods to pause.", e);
-    }
-
-    // Get RequestCoordinator of Scalar Admin to pause.
-    RequestCoordinator requestCoordinator;
-    try {
-      requestCoordinator = getRequestCoordinator(targetBeforePause);
-    } catch (Exception e) {
-      throw new PauserException("Failed to initialize the request coordinator.", e);
     }
 
     // From here, we cannot throw exceptions right after they occur because we need to take care of
@@ -141,7 +98,7 @@ public class Pauser {
     PauseDuration pausedDuration = null;
     PauseFailedException pauseFailedException = null;
     try {
-      pausedDuration = pauseInternal(requestCoordinator, pauseDuration, maxPauseWaitTime);
+      pausedDuration = pauseInternal(client, pauseDuration, maxPauseWaitTime);
     } catch (Exception e) {
       pauseFailedException = new PauseFailedException(PAUSE_ERROR_MESSAGE, e);
     }
@@ -149,7 +106,7 @@ public class Pauser {
     // Run an unpause operation.
     UnpauseFailedException unpauseFailedException = null;
     try {
-      unpauseWithRetry(requestCoordinator, MAX_UNPAUSE_RETRY_COUNT);
+      unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT);
     } catch (Exception e) {
       unpauseFailedException = new UnpauseFailedException(UNPAUSE_ERROR_MESSAGE, e);
     }
@@ -158,7 +115,7 @@ public class Pauser {
     PauseTarget targetAfterPause = null;
     GetTargetAfterPauseFailedException getTargetAfterPauseFailedException = null;
     try {
-      targetAfterPause = getTarget();
+      targetAfterPause = targetAfterPauseSupplier.get();
     } catch (Exception e) {
       getTargetAfterPauseFailedException =
           new GetTargetAfterPauseFailedException(GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE, e);
@@ -198,12 +155,23 @@ public class Pauser {
     }
   }
 
+  /**
+   * Functional interface for supplying PauseTarget after pause operation.
+   *
+   * <p>This allows the domain service to request the latest target state without depending on the
+   * repository directly.
+   */
+  @FunctionalInterface
+  public interface PauseTargetSupplier {
+    PauseTarget get() throws PauserException;
+  }
+
   @VisibleForTesting
-  void unpauseWithRetry(RequestCoordinator coordinator, int maxRetryCount) {
+  void unpauseWithRetry(ScalarAdminClient client, int maxRetryCount) {
     int retryCounter = 0;
     while (true) {
       try {
-        coordinator.unpause();
+        client.unpause();
         return;
       } catch (Exception e) {
         if (++retryCounter >= maxRetryCount) {
@@ -214,22 +182,9 @@ public class Pauser {
   }
 
   @VisibleForTesting
-  PauseTarget getTarget() throws PauserException {
-    return pauseTargetRepository.findByHelmRelease(namespace, helmReleaseName);
-  }
-
-  @VisibleForTesting
-  RequestCoordinator getRequestCoordinator(PauseTarget target) {
-    return new RequestCoordinator(
-        target.pods().stream()
-            .map(p -> new InetSocketAddress(p.getStatus().getPodIP(), target.adminPort()))
-            .collect(Collectors.toList()));
-  }
-
-  @VisibleForTesting
   PauseDuration pauseInternal(
-      RequestCoordinator requestCoordinator, int pauseDuration, @Nullable Long maxPauseWaitTime) {
-    requestCoordinator.pause(true, maxPauseWaitTime);
+      ScalarAdminClient client, int pauseDuration, @Nullable Long maxPauseWaitTime) {
+    client.pause(true, maxPauseWaitTime);
     Instant startTime = Instant.now();
     Uninterruptibles.sleepUninterruptibly(pauseDuration, TimeUnit.MILLISECONDS);
     Instant endTime = Instant.now();
