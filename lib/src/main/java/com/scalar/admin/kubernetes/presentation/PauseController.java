@@ -8,12 +8,12 @@ import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
 import com.scalar.admin.kubernetes.infrastructure.repository.PauseTargetRepositoryImpl;
+import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import java.io.IOException;
-import javax.annotation.Nullable;
 
 /**
  * Controller for pause operations.
@@ -46,49 +46,30 @@ public class PauseController {
   }
 
   /**
-   * Executes a pause operation by Helm release.
+   * Executes a pause operation based on the given request.
    *
-   * @param namespace the Kubernetes namespace
-   * @param helmReleaseName the Helm release name
-   * @param pauseDuration the duration to pause in milliseconds
-   * @param maxPauseWaitTime the maximum wait time in milliseconds, null for default
+   * @param request the pause request containing all necessary parameters
    * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
    */
-  public PauseDurationDto pauseByHelmRelease(
-      String namespace,
-      String helmReleaseName,
-      int pauseDuration,
-      @Nullable Long maxPauseWaitTime)
-      throws PauserException {
+  public PauseDurationDto pause(PauseRequest request) throws PauserException {
+    // Build command from request
     PauseByHelmReleaseCommand command =
-        PauseByHelmReleaseCommand.create(namespace, helmReleaseName, pauseDuration, maxPauseWaitTime);
-    return applicationService.execute(command);
-  }
+        request.tlsEnabled()
+            ? PauseByHelmReleaseCommand.createWithTls(
+                request.namespace(),
+                request.helmReleaseName(),
+                request.pauseDuration(),
+                request.maxPauseWaitTime(),
+                request.caRootCert(),
+                request.overrideAuthority())
+            : PauseByHelmReleaseCommand.create(
+                request.namespace(),
+                request.helmReleaseName(),
+                request.pauseDuration(),
+                request.maxPauseWaitTime());
 
-  /**
-   * Executes a pause operation by Helm release with TLS enabled.
-   *
-   * @param namespace the Kubernetes namespace
-   * @param helmReleaseName the Helm release name
-   * @param pauseDuration the duration to pause in milliseconds
-   * @param maxPauseWaitTime the maximum wait time in milliseconds, null for default
-   * @param caRootCert the CA root certificate for TLS
-   * @param overrideAuthority the override authority for TLS
-   * @return DTO containing the start and end time of the pause operation
-   * @throws PauserException when the pause operation fails
-   */
-  public PauseDurationDto pauseByHelmReleaseWithTls(
-      String namespace,
-      String helmReleaseName,
-      int pauseDuration,
-      @Nullable Long maxPauseWaitTime,
-      String caRootCert,
-      String overrideAuthority)
-      throws PauserException {
-    PauseByHelmReleaseCommand command =
-        PauseByHelmReleaseCommand.createWithTls(
-            namespace, helmReleaseName, pauseDuration, maxPauseWaitTime, caRootCert, overrideAuthority);
+    // Execute command
     return applicationService.execute(command);
   }
 }
