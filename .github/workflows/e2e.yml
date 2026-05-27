@@ -48,6 +48,14 @@ jobs:
         with:
           version: ${{ env.HELM_VERSION }}
 
+      - name: Deploy PostgreSQL as a backend database for Scalar products
+        run: |
+          helm install postgresql oci://registry-1.docker.io/bitnamicharts/postgresql -f .github/manifests/postgresql.yaml
+
+      - name: Wait for PostgreSQL is started
+        run: |
+          kubectl wait --for=condition=Ready --timeout=120s pod/postgresql-0
+
       - name: Add Helm repository
         run: |
           helm repo add scalar-labs https://scalar-labs.github.io/helm-charts
