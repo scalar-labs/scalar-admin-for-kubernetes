@@ -1,9 +1,9 @@
 package com.scalar.admin.kubernetes.presentation;
 
 import com.scalar.admin.kubernetes.application.PauseApplicationService;
+import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
-import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
@@ -52,10 +52,10 @@ public class PauseController {
    * @param helmReleaseName the Helm release name
    * @param pauseDuration the duration to pause in milliseconds
    * @param maxPauseWaitTime the maximum wait time in milliseconds, null for default
-   * @return the start and end time of the pause operation
+   * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
    */
-  public PauseDuration pauseByHelmRelease(
+  public PauseDurationDto pauseByHelmRelease(
       String namespace,
       String helmReleaseName,
       int pauseDuration,
@@ -75,10 +75,10 @@ public class PauseController {
    * @param maxPauseWaitTime the maximum wait time in milliseconds, null for default
    * @param caRootCert the CA root certificate for TLS
    * @param overrideAuthority the override authority for TLS
-   * @return the start and end time of the pause operation
+   * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
    */
-  public PauseDuration pauseByHelmReleaseWithTls(
+  public PauseDurationDto pauseByHelmReleaseWithTls(
       String namespace,
       String helmReleaseName,
       int pauseDuration,
