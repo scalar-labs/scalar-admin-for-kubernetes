@@ -37,13 +37,37 @@ class Cli implements Callable<Integer> {
   private String namespace;
 
   @Option(
+      names = {"--pod-discovery-mode"},
+      description =
+          "The mode to discover the target pods. Valid values: helm-release, deployment."
+              + " helm-release by default.",
+      defaultValue = "helm-release")
+  private String podDiscoveryMode;
+
+  @Option(
       names = {"--release-name", "-r"},
       description =
-          "Required. The helm release name that you specify when you run the `helm install"
-              + " <RELEASE_NAME>` command. You can see the <RELEASE_NAME> by using the `helm list`"
-              + " command.",
-      required = true)
+          "The helm release name that you specify when you run the `helm install <RELEASE_NAME>`"
+              + " command. You can see the <RELEASE_NAME> by using the `helm list` command."
+              + " Required when --pod-discovery-mode is helm-release.")
+  @Nullable
   private String helmReleaseName;
+
+  @Option(
+      names = {"--deployment-name"},
+      description =
+          "The name of the Kubernetes Deployment for the Scalar product."
+              + " Required when --pod-discovery-mode is deployment.")
+  @Nullable
+  private String deploymentName;
+
+  @Option(
+      names = {"--admin-port"},
+      description =
+          "The port number of the admin interface of the Scalar product."
+              + " Required when --pod-discovery-mode is deployment.")
+  @Nullable
+  private Integer adminPort;
 
   @Option(
       names = {"--pause-duration", "-d"},
@@ -122,7 +146,10 @@ class Cli implements Callable<Integer> {
       PauseRequest request =
           new PauseRequest(
               namespace,
+              podDiscoveryMode,
               helmReleaseName,
+              deploymentName,
+              adminPort,
               pauseDuration,
               maxPauseWaitTime,
               tlsEnabled,
