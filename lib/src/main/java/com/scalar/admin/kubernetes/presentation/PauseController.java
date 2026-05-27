@@ -51,9 +51,13 @@ public class PauseController {
    * @param request the pause request containing all necessary parameters
    * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
+   * @throws IllegalArgumentException when the request is null
    */
   public PauseDurationDto pause(PauseRequest request) throws PauserException {
-    // Build command from request
+    if (request == null) {
+      throw new IllegalArgumentException("request is required");
+    }
+
     PauseByHelmReleaseCommand command =
         request.tlsEnabled()
             ? PauseByHelmReleaseCommand.createWithTls(
@@ -69,7 +73,6 @@ public class PauseController {
                 request.pauseDuration(),
                 request.maxPauseWaitTime());
 
-    // Execute command
     return applicationService.execute(command);
   }
 }
