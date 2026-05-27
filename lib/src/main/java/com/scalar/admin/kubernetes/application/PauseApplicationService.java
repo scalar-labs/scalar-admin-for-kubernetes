@@ -1,5 +1,6 @@
 package com.scalar.admin.kubernetes.application;
 
+import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
@@ -60,16 +61,16 @@ public class PauseApplicationService {
    * Executes a pause operation based on the given command.
    *
    * @param command the pause command specifying the operation details
-   * @return the start and end time of the pause operation
+   * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
    */
-  public PauseDuration execute(PauseCommand command) throws PauserException {
+  public PauseDurationDto execute(PauseCommand command) throws PauserException {
     return switch (command) {
       case PauseByHelmReleaseCommand cmd -> executePauseByHelmRelease(cmd);
     };
   }
 
-  private PauseDuration executePauseByHelmRelease(PauseByHelmReleaseCommand command)
+  private PauseDurationDto executePauseByHelmRelease(PauseByHelmReleaseCommand command)
       throws PauserException {
     // Get the pause target before pause
     PauseTarget targetBeforePause;
@@ -93,11 +94,18 @@ public class PauseApplicationService {
     }
 
     // Execute the pause operation through the domain service
-    return pauseService.pause(
-        targetBeforePause,
-        () -> pauseTargetRepository.findByHelmRelease(command.namespace(), command.helmReleaseName()),
-        client,
-        command.pauseDuration(),
-        command.maxPauseWaitTime());
+    PauseDuration pauseDuration =
+        pauseService.pause(
+            targetBeforePause,
+            () ->
+                pauseTargetRepository.findByHelmRelease(
+                    command.namespace(), command.helmReleaseName()),
+            client,
+            command.pauseDuration(),
+            command.maxPauseWaitTime());
+
+    // Convert domain object to DTO
+    return new PauseDurationDto(
+        pauseDuration.startTime().toEpochMilli(), pauseDuration.endTime().toEpochMilli());
   }
 }
