@@ -87,4 +87,14 @@ public record PauseByHelmReleaseCommand(
         maxPauseWaitTime,
         new TlsConfig(caRootCert, overrideAuthority));
   }
+
+  /**
+   * Returns the pod discovery mode for this command.
+   *
+   * @return HELM_RELEASE mode
+   */
+  @Override
+  public PodDiscoveryMode podDiscoveryMode() {
+    return PodDiscoveryMode.HELM_RELEASE;
+  }
 }

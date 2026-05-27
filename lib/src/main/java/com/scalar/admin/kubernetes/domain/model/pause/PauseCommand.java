@@ -13,4 +13,16 @@ public sealed interface PauseCommand permits PauseByHelmReleaseCommand {
   // Future implementations might include:
   // - PauseByDeploymentCommand
   // - PauseByLabelSelectorCommand
+
+  /**
+   * Returns the pod discovery mode for this command.
+   *
+   * <p>This method specifies how the system should identify target pods. The default
+   * implementation returns HELM_RELEASE for backward compatibility.
+   *
+   * @return the pod discovery mode
+   */
+  default PodDiscoveryMode podDiscoveryMode() {
+    return PodDiscoveryMode.HELM_RELEASE;
+  }
 }
