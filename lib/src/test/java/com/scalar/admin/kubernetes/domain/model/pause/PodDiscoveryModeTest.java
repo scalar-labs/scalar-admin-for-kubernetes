@@ -23,6 +23,13 @@ class PodDiscoveryModeTest {
       // Arrange & Act & Assert
       assertThat(PodDiscoveryMode.HELM_RELEASE.getValue()).isEqualTo("helm-release");
     }
+
+    @Test
+    @DisplayName("returns correct value for DEPLOYMENT")
+    void returnsCorrectValueForDeployment() {
+      // Arrange & Act & Assert
+      assertThat(PodDiscoveryMode.DEPLOYMENT.getValue()).isEqualTo("deployment");
+    }
   }
 
   @Nested
@@ -48,6 +55,22 @@ class PodDiscoveryModeTest {
         assertThat(PodDiscoveryMode.fromValue("HELM-RELEASE"))
             .isEqualTo(PodDiscoveryMode.HELM_RELEASE);
       }
+
+      @Test
+      @DisplayName("converts 'deployment' to DEPLOYMENT")
+      void convertsDeployment() {
+        // Arrange & Act & Assert
+        assertThat(PodDiscoveryMode.fromValue("deployment"))
+            .isEqualTo(PodDiscoveryMode.DEPLOYMENT);
+      }
+
+      @Test
+      @DisplayName("converts 'DEPLOYMENT' to DEPLOYMENT (case insensitive)")
+      void convertsDeploymentCaseInsensitive() {
+        // Arrange & Act & Assert
+        assertThat(PodDiscoveryMode.fromValue("DEPLOYMENT"))
+            .isEqualTo(PodDiscoveryMode.DEPLOYMENT);
+      }
     }
 
     @Nested
@@ -66,13 +89,16 @@ class PodDiscoveryModeTest {
       }
 
       @ParameterizedTest
-      @ValueSource(strings = {"invalid", "unknown", "deployment"})
+      @ValueSource(strings = {"invalid", "unknown", "helm_release", "deploy"})
       @DisplayName("throws IllegalArgumentException for unknown value")
       void throwsIllegalArgumentExceptionForUnknownValue(String invalidValue) {
         // Arrange & Act & Assert
         assertThatThrownBy(() -> PodDiscoveryMode.fromValue(invalidValue))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid podDiscoveryMode: " + invalidValue + ". Valid values are: helm-release");
+            .hasMessage(
+                "Invalid podDiscoveryMode: "
+                    + invalidValue
+                    + ". Valid values are: helm-release, deployment");
       }
     }
   }
@@ -93,7 +119,7 @@ class PodDiscoveryModeTest {
         @DisplayName("validates successfully")
         void validatesSuccessfully() {
           // Arrange & Act & Assert
-          assertThatCode(() -> PodDiscoveryMode.HELM_RELEASE.validate("my-release"))
+          assertThatCode(() -> PodDiscoveryMode.HELM_RELEASE.validate("my-release", null, null))
               .doesNotThrowAnyException();
         }
       }
@@ -108,9 +134,118 @@ class PodDiscoveryModeTest {
         @DisplayName("throws IllegalArgumentException")
         void throwsIllegalArgumentException(String invalidHelmReleaseName) {
           // Arrange & Act & Assert
-          assertThatThrownBy(() -> PodDiscoveryMode.HELM_RELEASE.validate(invalidHelmReleaseName))
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.HELM_RELEASE.validate(invalidHelmReleaseName, null, null))
               .isInstanceOf(IllegalArgumentException.class)
               .hasMessage("helmReleaseName is required when podDiscoveryMode is HELM_RELEASE");
+        }
+      }
+
+      @Nested
+      @DisplayName("when deploymentName is specified")
+      class WhenDeploymentNameIsSpecified {
+
+        @Test
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException() {
+          // Arrange & Act & Assert
+          assertThatThrownBy(
+                  () ->
+                      PodDiscoveryMode.HELM_RELEASE.validate(
+                          "my-release", "my-deployment", null))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "deploymentName and adminPort cannot be used when podDiscoveryMode is"
+                      + " HELM_RELEASE");
+        }
+      }
+
+      @Nested
+      @DisplayName("when adminPort is specified")
+      class WhenAdminPortIsSpecified {
+
+        @Test
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException() {
+          // Arrange & Act & Assert
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.HELM_RELEASE.validate("my-release", null, 60054))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage(
+                  "deploymentName and adminPort cannot be used when podDiscoveryMode is"
+                      + " HELM_RELEASE");
+        }
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("DEPLOYMENT mode")
+  class DeploymentMode {
+
+    @Nested
+    @DisplayName("validate method")
+    class ValidateMethod {
+
+      @Nested
+      @DisplayName("when deploymentName and adminPort are valid")
+      class WhenDeploymentNameAndAdminPortAreValid {
+
+        @Test
+        @DisplayName("validates successfully")
+        void validatesSuccessfully() {
+          // Arrange & Act & Assert
+          assertThatCode(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, "my-deployment", 60054))
+              .doesNotThrowAnyException();
+        }
+      }
+
+      @Nested
+      @DisplayName("when deploymentName is invalid")
+      class WhenDeploymentNameIsInvalid {
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        @ValueSource(strings = {"  ", "   "})
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException(String invalidDeploymentName) {
+          // Arrange & Act & Assert
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, invalidDeploymentName, 60054))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage("deploymentName is required when podDiscoveryMode is DEPLOYMENT");
+        }
+      }
+
+      @Nested
+      @DisplayName("when adminPort is null")
+      class WhenAdminPortIsNull {
+
+        @Test
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException() {
+          // Arrange & Act & Assert
+          assertThatThrownBy(
+                  () -> PodDiscoveryMode.DEPLOYMENT.validate(null, "my-deployment", null))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage("adminPort is required when podDiscoveryMode is DEPLOYMENT");
+        }
+      }
+
+      @Nested
+      @DisplayName("when helmReleaseName is specified")
+      class WhenHelmReleaseNameIsSpecified {
+
+        @Test
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException() {
+          // Arrange & Act & Assert
+          assertThatThrownBy(
+                  () ->
+                      PodDiscoveryMode.DEPLOYMENT.validate("my-release", "my-deployment", 60054))
+              .isInstanceOf(IllegalArgumentException.class)
+              .hasMessage("helmReleaseName cannot be used when podDiscoveryMode is DEPLOYMENT");
         }
       }
     }

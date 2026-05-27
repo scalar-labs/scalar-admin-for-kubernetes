@@ -1,6 +1,7 @@
 package com.scalar.admin.kubernetes.presentation.dto;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,16 +21,29 @@ class PauseRequestTest {
     class WhenGivenValidParameters {
 
       @Test
-      @DisplayName("creates PauseRequest successfully")
-      void createsPauseRequestSuccessfully() {
+      @DisplayName("creates PauseRequest with helm-release mode")
+      void createsPauseRequestWithHelmReleaseMode() {
         // Arrange & Act
         PauseRequest request =
-            new PauseRequest("default", "my-release", 5000, 30000L, false, null, null);
+            new PauseRequest(
+                "default",
+                "helm-release",
+                "my-release",
+                null,
+                null,
+                5000,
+                30000L,
+                false,
+                null,
+                null);
 
         // Assert
         assertThat(request).isNotNull();
         assertThat(request.namespace()).isEqualTo("default");
+        assertThat(request.podDiscoveryMode()).isEqualTo("helm-release");
         assertThat(request.helmReleaseName()).isEqualTo("my-release");
+        assertThat(request.deploymentName()).isNull();
+        assertThat(request.adminPort()).isNull();
         assertThat(request.pauseDuration()).isEqualTo(5000);
         assertThat(request.maxPauseWaitTime()).isEqualTo(30000L);
         assertThat(request.tlsEnabled()).isFalse();
@@ -38,12 +52,48 @@ class PauseRequestTest {
       }
 
       @Test
+      @DisplayName("creates PauseRequest with deployment mode")
+      void createsPauseRequestWithDeploymentMode() {
+        // Arrange & Act
+        PauseRequest request =
+            new PauseRequest(
+                "default",
+                "deployment",
+                null,
+                "my-deployment",
+                60054,
+                5000,
+                null,
+                false,
+                null,
+                null);
+
+        // Assert
+        assertThat(request).isNotNull();
+        assertThat(request.namespace()).isEqualTo("default");
+        assertThat(request.podDiscoveryMode()).isEqualTo("deployment");
+        assertThat(request.helmReleaseName()).isNull();
+        assertThat(request.deploymentName()).isEqualTo("my-deployment");
+        assertThat(request.adminPort()).isEqualTo(60054);
+        assertThat(request.pauseDuration()).isEqualTo(5000);
+      }
+
+      @Test
       @DisplayName("creates PauseRequest with TLS enabled")
       void createsPauseRequestWithTls() {
         // Arrange & Act
         PauseRequest request =
             new PauseRequest(
-                "default", "my-release", 5000, null, true, "cert-content", "authority");
+                "default",
+                "helm-release",
+                "my-release",
+                null,
+                null,
+                5000,
+                null,
+                true,
+                "cert-content",
+                "authority");
 
         // Assert
         assertThat(request).isNotNull();
@@ -57,7 +107,8 @@ class PauseRequestTest {
       void createsPauseRequestWithNullMaxPauseWaitTime() {
         // Arrange & Act
         PauseRequest request =
-            new PauseRequest("default", "my-release", 5000, null, false, null, null);
+            new PauseRequest(
+                "default", "helm-release", "my-release", null, null, 5000, null, false, null, null);
 
         // Assert
         assertThat(request).isNotNull();
@@ -68,7 +119,9 @@ class PauseRequestTest {
       @DisplayName("creates PauseRequest with minimal pause duration (1ms)")
       void createsPauseRequestWithMinimalPauseDuration() {
         // Arrange & Act
-        PauseRequest request = new PauseRequest("default", "my-release", 1, null, false, null, null);
+        PauseRequest request =
+            new PauseRequest(
+                "default", "helm-release", "my-release", null, null, 1, null, false, null, null);
 
         // Assert
         assertThat(request).isNotNull();
@@ -89,28 +142,46 @@ class PauseRequestTest {
         assertThatThrownBy(
                 () ->
                     new PauseRequest(
-                        invalidNamespace, "my-release", 5000, null, false, null, null))
+                        invalidNamespace,
+                        "helm-release",
+                        "my-release",
+                        null,
+                        null,
+                        5000,
+                        null,
+                        false,
+                        null,
+                        null))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("namespace is required");
       }
     }
 
     @Nested
-    @DisplayName("when helmReleaseName is invalid")
-    class WhenHelmReleaseNameIsInvalid {
+    @DisplayName("when podDiscoveryMode is invalid")
+    class WhenPodDiscoveryModeIsInvalid {
 
       @ParameterizedTest
       @NullAndEmptySource
       @ValueSource(strings = {"  ", "   "})
       @DisplayName("throws IllegalArgumentException")
-      void throwsIllegalArgumentException(String invalidHelmReleaseName) {
+      void throwsIllegalArgumentException(String invalidPodDiscoveryMode) {
         // Arrange & Act & Assert
         assertThatThrownBy(
                 () ->
                     new PauseRequest(
-                        "default", invalidHelmReleaseName, 5000, null, false, null, null))
+                        "default",
+                        invalidPodDiscoveryMode,
+                        "my-release",
+                        null,
+                        null,
+                        5000,
+                        null,
+                        false,
+                        null,
+                        null))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("helmReleaseName is required");
+            .hasMessage("podDiscoveryMode is required");
       }
     }
 
@@ -126,7 +197,16 @@ class PauseRequestTest {
         assertThatThrownBy(
                 () ->
                     new PauseRequest(
-                        "default", "my-release", invalidPauseDuration, null, false, null, null))
+                        "default",
+                        "helm-release",
+                        "my-release",
+                        null,
+                        null,
+                        invalidPauseDuration,
+                        null,
+                        false,
+                        null,
+                        null))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage(
                 "pauseDuration must be greater than 0, but was: " + invalidPauseDuration);
