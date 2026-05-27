@@ -3,6 +3,7 @@ package com.scalar.admin.kubernetes.application;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
@@ -84,7 +85,9 @@ class PauseApplicationServiceTest {
 
       PauseTarget target = mock(PauseTarget.class);
       ScalarAdminClient client = mock(ScalarAdminClient.class);
-      PauseDuration expected = new PauseDuration(Instant.now(), Instant.now());
+      Instant startTime = Instant.now();
+      Instant endTime = startTime.plusMillis(pauseDuration);
+      PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
 
       PauseByHelmReleaseCommand command =
           PauseByHelmReleaseCommand.create(
@@ -93,13 +96,14 @@ class PauseApplicationServiceTest {
       when(repository.findByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
       when(clientFactory.createClient(target)).thenReturn(client);
       when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
-          .thenReturn(expected);
+          .thenReturn(domainPauseDuration);
 
       // Act
-      PauseDuration actual = applicationService.execute(command);
+      PauseDurationDto actual = applicationService.execute(command);
 
       // Assert
-      assertEquals(expected, actual);
+      assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
+      assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
       verify(repository).findByHelmRelease(namespace, helmReleaseName);
       verify(clientFactory).createClient(target);
       verify(pauseService)
@@ -118,7 +122,9 @@ class PauseApplicationServiceTest {
 
       PauseTarget target = mock(PauseTarget.class);
       ScalarAdminClient client = mock(ScalarAdminClient.class);
-      PauseDuration expected = new PauseDuration(Instant.now(), Instant.now());
+      Instant startTime = Instant.now();
+      Instant endTime = startTime.plusMillis(pauseDuration);
+      PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
 
       PauseByHelmReleaseCommand command =
           PauseByHelmReleaseCommand.createWithTls(
@@ -132,13 +138,14 @@ class PauseApplicationServiceTest {
       when(repository.findByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
       when(clientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
       when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
-          .thenReturn(expected);
+          .thenReturn(domainPauseDuration);
 
       // Act
-      PauseDuration actual = applicationService.execute(command);
+      PauseDurationDto actual = applicationService.execute(command);
 
       // Assert
-      assertEquals(expected, actual);
+      assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
+      assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
       verify(repository).findByHelmRelease(namespace, helmReleaseName);
       verify(clientFactory).createClient(eq(target), any(TlsConfig.class));
       verify(pauseService)
