@@ -15,7 +15,15 @@ public enum PodDiscoveryMode {
    * <p>In this mode, the system identifies pods by looking for resources labeled with the
    * specified Helm release name. This is the default and original behavior.
    */
-  HELM_RELEASE("helm-release");
+  HELM_RELEASE("helm-release"),
+
+  /**
+   * Discover pods by deployment name.
+   *
+   * <p>In this mode, the system identifies pods by the deployment name. The admin port must be
+   * explicitly specified as it cannot be auto-detected.
+   */
+  DEPLOYMENT("deployment");
 
   private final String value;
 
@@ -26,7 +34,7 @@ public enum PodDiscoveryMode {
   /**
    * Returns the string value of this mode.
    *
-   * @return the string value (e.g., "helm-release")
+   * @return the string value (e.g., "helm-release", "deployment")
    */
   public String getValue() {
     return value;
@@ -55,22 +63,46 @@ public enum PodDiscoveryMode {
     }
 
     throw new IllegalArgumentException(
-        "Invalid podDiscoveryMode: " + value + ". Valid values are: helm-release");
+        "Invalid podDiscoveryMode: " + value + ". Valid values are: helm-release, deployment");
   }
 
   /**
    * Validates the required parameters for this discovery mode.
    *
-   * <p>Phase 1: Only validates helmReleaseName (deploymentName and adminPort don't exist yet).
-   *
    * @param helmReleaseName the Helm release name (required for HELM_RELEASE mode)
+   * @param deploymentName the deployment name (required for DEPLOYMENT mode)
+   * @param adminPort the admin port (required for DEPLOYMENT mode)
    * @throws IllegalArgumentException if required parameters are missing or invalid for this mode
    */
-  public void validate(@Nullable String helmReleaseName) {
-    // Phase 1: Only HELM_RELEASE exists
-    if (helmReleaseName == null || helmReleaseName.isBlank()) {
-      throw new IllegalArgumentException(
-          "helmReleaseName is required when podDiscoveryMode is HELM_RELEASE");
+  public void validate(
+      @Nullable String helmReleaseName,
+      @Nullable String deploymentName,
+      @Nullable Integer adminPort) {
+    switch (this) {
+      case HELM_RELEASE:
+        if (helmReleaseName == null || helmReleaseName.isBlank()) {
+          throw new IllegalArgumentException(
+              "helmReleaseName is required when podDiscoveryMode is HELM_RELEASE");
+        }
+        if (deploymentName != null || adminPort != null) {
+          throw new IllegalArgumentException(
+              "deploymentName and adminPort cannot be used when podDiscoveryMode is HELM_RELEASE");
+        }
+        break;
+      case DEPLOYMENT:
+        if (deploymentName == null || deploymentName.isBlank()) {
+          throw new IllegalArgumentException(
+              "deploymentName is required when podDiscoveryMode is DEPLOYMENT");
+        }
+        if (adminPort == null) {
+          throw new IllegalArgumentException(
+              "adminPort is required when podDiscoveryMode is DEPLOYMENT");
+        }
+        if (helmReleaseName != null) {
+          throw new IllegalArgumentException(
+              "helmReleaseName cannot be used when podDiscoveryMode is DEPLOYMENT");
+        }
+        break;
     }
   }
 }
