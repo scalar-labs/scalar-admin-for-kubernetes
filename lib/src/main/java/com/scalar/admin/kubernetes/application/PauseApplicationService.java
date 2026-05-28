@@ -7,7 +7,7 @@ import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
-import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
+import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -28,23 +28,23 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 public class PauseApplicationService {
 
-  private final PauseTargetRepository pauseTargetRepository;
+  private final KubernetesClient kubernetesClient;
   private final ScalarAdminClientFactory clientFactory;
   private final PauseService pauseService;
 
   /**
    * Creates a PauseApplicationService with the given dependencies.
    *
-   * @param pauseTargetRepository repository for retrieving pause targets
+   * @param kubernetesClient client for resolving pause targets from Kubernetes
    * @param clientFactory factory for creating Scalar Admin clients
    * @param pauseService domain service for pause business logic
    */
   public PauseApplicationService(
-      PauseTargetRepository pauseTargetRepository,
+      KubernetesClient kubernetesClient,
       ScalarAdminClientFactory clientFactory,
       PauseService pauseService) {
-    if (pauseTargetRepository == null) {
-      throw new IllegalArgumentException("pauseTargetRepository is required");
+    if (kubernetesClient == null) {
+      throw new IllegalArgumentException("kubernetesClient is required");
     }
     if (clientFactory == null) {
       throw new IllegalArgumentException("clientFactory is required");
@@ -52,7 +52,7 @@ public class PauseApplicationService {
     if (pauseService == null) {
       throw new IllegalArgumentException("pauseService is required");
     }
-    this.pauseTargetRepository = pauseTargetRepository;
+    this.kubernetesClient = kubernetesClient;
     this.clientFactory = clientFactory;
     this.pauseService = pauseService;
   }
@@ -76,7 +76,7 @@ public class PauseApplicationService {
     PauseTarget targetBeforePause;
     try {
       targetBeforePause =
-          pauseTargetRepository.findByHelmRelease(command.namespace(), command.helmReleaseName());
+          kubernetesClient.resolvePauseTargetByHelmRelease(command.namespace(), command.helmReleaseName());
     } catch (Exception e) {
       throw new PauserException("Failed to find the target pods to pause.", e);
     }
@@ -98,7 +98,7 @@ public class PauseApplicationService {
         pauseService.pause(
             targetBeforePause,
             () ->
-                pauseTargetRepository.findByHelmRelease(
+                kubernetesClient.resolvePauseTargetByHelmRelease(
                     command.namespace(), command.helmReleaseName()),
             client,
             command.pauseDuration(),

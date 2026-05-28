@@ -1,9 +1,9 @@
-package com.scalar.admin.kubernetes.infrastructure.repository;
+package com.scalar.admin.kubernetes.infrastructure.client;
 
+import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.shared.Product;
-import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -20,9 +20,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
-/** Implementation of {@link PauseTargetRepository} using Kubernetes Java Client API. */
+/** Implementation of {@link KubernetesClient} using Kubernetes Java Client API. */
 @ThreadSafe
-public class PauseTargetRepositoryImpl implements PauseTargetRepository {
+public class KubernetesClientImpl implements KubernetesClient {
 
   // MAYBE: Consider moving these to domain layer as value objects if they need to be configurable
   static final String LABEL_INSTANCE = "app.kubernetes.io/instance";
@@ -32,13 +32,13 @@ public class PauseTargetRepositoryImpl implements PauseTargetRepository {
   private final CoreV1Api coreApi;
   private final AppsV1Api appsApi;
 
-  public PauseTargetRepositoryImpl(CoreV1Api coreApi, AppsV1Api appsApi) {
+  public KubernetesClientImpl(CoreV1Api coreApi, AppsV1Api appsApi) {
     this.coreApi = coreApi;
     this.appsApi = appsApi;
   }
 
   @Override
-  public PauseTarget findByHelmRelease(String namespace, String helmReleaseName)
+  public PauseTarget resolvePauseTargetByHelmRelease(String namespace, String helmReleaseName)
       throws PauserException {
     try {
       List<V1Pod> podsCreatedByHelmRelease = findPodsCreatedByHelmRelease(namespace, helmReleaseName);
