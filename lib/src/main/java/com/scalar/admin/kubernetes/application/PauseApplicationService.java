@@ -8,9 +8,12 @@ import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
+import com.scalar.admin.kubernetes.domain.model.pause.TlsConfig;
 import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClientFactory;
+import com.scalar.admin.kubernetes.domain.service.PauseService.PauseTargetSupplier;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 
@@ -66,27 +69,70 @@ public class PauseApplicationService {
    * @param command the pause command specifying the operation details
    * @return DTO containing the start and end time of the pause operation
    * @throws PauserException when the pause operation fails
+   * @throws IllegalArgumentException when the command is null
    */
   public PauseDurationDto execute(PauseCommand command) throws PauserException {
+    if (command == null) {
+      throw new IllegalArgumentException("command is required");
+    }
     return switch (command) {
       case PauseByHelmReleaseCommand cmd -> executePauseByHelmRelease(cmd);
-      case PauseByDeploymentNameCommand cmd -> throw new UnsupportedOperationException(
-          "DEPLOYMENT mode is not yet implemented. Only HELM_RELEASE mode is currently supported.");
+      case PauseByDeploymentNameCommand cmd -> executePauseByDeploymentName(cmd);
     };
   }
 
   private PauseDurationDto executePauseByHelmRelease(PauseByHelmReleaseCommand command)
       throws PauserException {
+    return executePause(
+        () ->
+            kubernetesClient.resolvePauseTargetByHelmRelease(
+                command.namespace(), command.helmReleaseName()),
+        command.tlsConfig(),
+        command.pauseDuration(),
+        command.maxPauseWaitTime());
+  }
+
+  private PauseDurationDto executePauseByDeploymentName(PauseByDeploymentNameCommand command)
+      throws PauserException {
+    return executePause(
+        () ->
+            kubernetesClient.resolvePauseTargetByDeploymentName(
+                command.namespace(), command.deploymentName(), command.adminPort()),
+        command.tlsConfig(),
+        command.pauseDuration(),
+        command.maxPauseWaitTime());
+  }
+
+  /**
+   * Executes a pause operation with the given target supplier and configuration.
+   *
+   * @param targetSupplier supplier function to retrieve the pause target
+   * @param tlsConfig TLS configuration (null for non-TLS)
+   * @param pauseDuration the duration to pause in milliseconds
+   * @param maxPauseWaitTime the maximum wait time for pause operation (null for default)
+   * @return DTO containing the start and end time of the pause operation
+   * @throws PauserException when the pause operation fails
+   */
+  private PauseDurationDto executePause(
+      PauseTargetSupplier targetSupplier,
+      @Nullable TlsConfig tlsConfig,
+      int pauseDuration,
+      @Nullable Long maxPauseWaitTime)
+      throws PauserException {
+
     // Get the pause target before pause
-    PauseTarget targetBeforePause =
-        kubernetesClient.resolvePauseTargetByHelmRelease(
-            command.namespace(), command.helmReleaseName());
+    PauseTarget targetBeforePause;
+    try {
+      targetBeforePause = targetSupplier.get();
+    } catch (Exception e) {
+      throw new PauserException("Failed to find the target pods to pause.", e);
+    }
 
     // Create the appropriate client (with or without TLS)
     ScalarAdminClient client;
     try {
-      if (command.tlsConfig() != null) {
-        client = clientFactory.createClient(targetBeforePause, command.tlsConfig());
+      if (tlsConfig != null) {
+        client = clientFactory.createClient(targetBeforePause, tlsConfig);
       } else {
         client = clientFactory.createClient(targetBeforePause);
       }
@@ -95,18 +141,12 @@ public class PauseApplicationService {
     }
 
     // Execute the pause operation through the domain service
-    PauseDuration pauseDuration =
+    PauseDuration duration =
         pauseService.pause(
-            targetBeforePause,
-            () ->
-                kubernetesClient.resolvePauseTargetByHelmRelease(
-                    command.namespace(), command.helmReleaseName()),
-            client,
-            command.pauseDuration(),
-            command.maxPauseWaitTime());
+            targetBeforePause, targetSupplier, client, pauseDuration, maxPauseWaitTime);
 
     // Convert domain object to DTO
     return new PauseDurationDto(
-        pauseDuration.startTime().toEpochMilli(), pauseDuration.endTime().toEpochMilli());
+        duration.startTime().toEpochMilli(), duration.endTime().toEpochMilli());
   }
 }

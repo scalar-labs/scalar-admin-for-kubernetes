@@ -1,11 +1,18 @@
 package com.scalar.admin.kubernetes.application;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseByDeploymentNameCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
@@ -15,6 +22,7 @@ import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClientFactory;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -34,160 +42,320 @@ class PauseApplicationServiceTest {
   }
 
   @Nested
+  @DisplayName("Constructor")
   class Constructor {
     @Test
-    void constructor_WithValidArgs_CreateInstance() {
+    @DisplayName("creates instance with valid arguments")
+    void createsInstanceWithValidArguments() {
       // Act & Assert
-      assertDoesNotThrow(
-          () -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, pauseService));
+      assertThatCode(() -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, pauseService))
+          .doesNotThrowAnyException();
     }
 
     @Test
-    void constructor_WithNullKubernetesClient_ThrowIllegalArgumentException() {
+    @DisplayName("throws IllegalArgumentException when kubernetesClient is null")
+    void throwsIllegalArgumentExceptionWhenRepositoryIsNull() {
       // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class,
-              () -> new PauseApplicationService(null, scalarAdminClientFactory, pauseService));
-      assertEquals("kubernetesClient is required", thrown.getMessage());
+      assertThatThrownBy(() -> new PauseApplicationService(null, scalarAdminClientFactory, pauseService))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("kubernetesClient is required");
     }
 
     @Test
-    void constructor_WithNullClientFactory_ThrowIllegalArgumentException() {
+    @DisplayName("throws IllegalArgumentException when client factory is null")
+    void throwsIllegalArgumentExceptionWhenClientFactoryIsNull() {
       // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class,
-              () -> new PauseApplicationService(kubernetesClient, null, pauseService));
-      assertEquals("clientFactory is required", thrown.getMessage());
+      assertThatThrownBy(() -> new PauseApplicationService(kubernetesClient, null, pauseService))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("clientFactory is required");
     }
 
     @Test
-    void constructor_WithNullPauseService_ThrowIllegalArgumentException() {
+    @DisplayName("throws IllegalArgumentException when pause service is null")
+    void throwsIllegalArgumentExceptionWhenPauseServiceIsNull() {
       // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class,
-              () -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, null));
-      assertEquals("pauseService is required", thrown.getMessage());
+      assertThatThrownBy(() -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, null))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessage("pauseService is required");
     }
   }
 
   @Nested
+  @DisplayName("execute()")
   class Execute {
-    @Test
-    void execute_WithNonTlsCommand_SuccessfullyPause() throws PauserException {
-      // Arrange
-      String namespace = "test-ns";
-      String helmReleaseName = "test-release";
-      int pauseDuration = 5000;
-      Long maxPauseWaitTime = 3000L;
 
-      PauseTarget target = mock(PauseTarget.class);
-      ScalarAdminClient client = mock(ScalarAdminClient.class);
-      Instant startTime = Instant.now();
-      Instant endTime = startTime.plusMillis(pauseDuration);
-      PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
+    @Nested
+    @DisplayName("when command is null")
+    class WhenCommandIsNull {
 
-      PauseByHelmReleaseCommand command =
-          PauseByHelmReleaseCommand.create(
-              namespace, helmReleaseName, pauseDuration, maxPauseWaitTime);
-
-      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(scalarAdminClientFactory.createClient(target)).thenReturn(client);
-      when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
-          .thenReturn(domainPauseDuration);
-
-      // Act
-      PauseDurationDto actual = applicationService.execute(command);
-
-      // Assert
-      assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
-      assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
-      verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
-      verify(scalarAdminClientFactory).createClient(target);
-      verify(pauseService)
-          .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+      @Test
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException() {
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("command is required");
+      }
     }
 
-    @Test
-    void execute_WithTlsCommand_SuccessfullyPause() throws PauserException {
-      // Arrange
-      String namespace = "test-ns";
-      String helmReleaseName = "test-release";
-      int pauseDuration = 5000;
-      Long maxPauseWaitTime = 3000L;
-      String caRootCert = "dummyCert";
-      String overrideAuthority = "dummyAuthority";
+    @Nested
+    @DisplayName("when command is PauseByHelmReleaseCommand")
+    class WhenCommandIsPauseByHelmReleaseCommand {
 
-      PauseTarget target = mock(PauseTarget.class);
-      ScalarAdminClient client = mock(ScalarAdminClient.class);
-      Instant startTime = Instant.now();
-      Instant endTime = startTime.plusMillis(pauseDuration);
-      PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
+      @Test
+      @DisplayName("executes pause successfully with non-TLS command")
+      void executesPauseSuccessfullyWithNonTlsCommand() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String helmReleaseName = "test-release";
+        int pauseDuration = 5000;
+        Long maxPauseWaitTime = 3000L;
 
-      PauseByHelmReleaseCommand command =
-          PauseByHelmReleaseCommand.createWithTls(
-              namespace,
-              helmReleaseName,
-              pauseDuration,
-              maxPauseWaitTime,
-              caRootCert,
-              overrideAuthority);
+        PauseTarget target = mock(PauseTarget.class);
+        ScalarAdminClient client = mock(ScalarAdminClient.class);
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plusMillis(pauseDuration);
+        PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
 
-      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(scalarAdminClientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
-      when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
-          .thenReturn(domainPauseDuration);
+        PauseByHelmReleaseCommand command =
+            PauseByHelmReleaseCommand.create(
+                namespace, helmReleaseName, pauseDuration, maxPauseWaitTime);
 
-      // Act
-      PauseDurationDto actual = applicationService.execute(command);
+        when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+        when(scalarAdminClientFactory.createClient(target)).thenReturn(client);
+        when(pauseService.pause(
+                eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
+            .thenReturn(domainPauseDuration);
 
-      // Assert
-      assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
-      assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
-      verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
-      verify(scalarAdminClientFactory).createClient(eq(target), any(TlsConfig.class));
-      verify(pauseService)
-          .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+        // Act
+        PauseDurationDto actual = applicationService.execute(command);
+
+        // Assert
+        assertThat(actual.startTimeEpochMilli()).isEqualTo(startTime.toEpochMilli());
+        assertThat(actual.endTimeEpochMilli()).isEqualTo(endTime.toEpochMilli());
+        verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
+        verify(scalarAdminClientFactory).createClient(target);
+        verify(pauseService)
+            .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+      }
+
+      @Test
+      @DisplayName("executes pause successfully with TLS command")
+      void executesPauseSuccessfullyWithTlsCommand() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String helmReleaseName = "test-release";
+        int pauseDuration = 5000;
+        Long maxPauseWaitTime = 3000L;
+        String caRootCert = "dummyCert";
+        String overrideAuthority = "dummyAuthority";
+
+        PauseTarget target = mock(PauseTarget.class);
+        ScalarAdminClient client = mock(ScalarAdminClient.class);
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plusMillis(pauseDuration);
+        PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
+
+        PauseByHelmReleaseCommand command =
+            PauseByHelmReleaseCommand.createWithTls(
+                namespace,
+                helmReleaseName,
+                pauseDuration,
+                maxPauseWaitTime,
+                caRootCert,
+                overrideAuthority);
+
+        when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+        when(scalarAdminClientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
+        when(pauseService.pause(
+                eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
+            .thenReturn(domainPauseDuration);
+
+        // Act
+        PauseDurationDto actual = applicationService.execute(command);
+
+        // Assert
+        assertThat(actual.startTimeEpochMilli()).isEqualTo(startTime.toEpochMilli());
+        assertThat(actual.endTimeEpochMilli()).isEqualTo(endTime.toEpochMilli());
+        verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
+        verify(scalarAdminClientFactory).createClient(eq(target), any(TlsConfig.class));
+        verify(pauseService)
+            .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+      }
+
+      @Test
+      @DisplayName("throws PauserException when kubernetesClient throws exception")
+      void throwsPauserExceptionWhenRepositoryThrowsException() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String helmReleaseName = "test-release";
+
+        PauseByHelmReleaseCommand command =
+            PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
+
+        when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName))
+            .thenThrow(new RuntimeException("Repository error"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isInstanceOf(PauserException.class)
+            .hasMessage("Failed to find the target pods to pause.");
+      }
+
+      @Test
+      @DisplayName("throws PauserException when client factory throws exception")
+      void throwsPauserExceptionWhenClientFactoryThrowsException() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String helmReleaseName = "test-release";
+
+        PauseTarget target = mock(PauseTarget.class);
+        PauseByHelmReleaseCommand command =
+            PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
+
+        when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+        when(scalarAdminClientFactory.createClient(target))
+            .thenThrow(new RuntimeException("Client factory error"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isInstanceOf(PauserException.class)
+            .hasMessage("Failed to initialize the Scalar Admin client.");
+      }
     }
 
-    @Test
-    void execute_WhenRepositoryThrowsException_ThrowPauserException() throws PauserException {
-      // Arrange
-      String namespace = "test-ns";
-      String helmReleaseName = "test-release";
+    @Nested
+    @DisplayName("when command is PauseByDeploymentNameCommand")
+    class WhenCommandIsPauseByDeploymentNameCommand {
 
-      PauseByHelmReleaseCommand command =
-          PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
+      @Test
+      @DisplayName("executes pause successfully with non-TLS command")
+      void executesPauseSuccessfullyWithNonTlsCommand() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String deploymentName = "test-deployment";
+        int adminPort = 60054;
+        int pauseDuration = 5000;
+        Long maxPauseWaitTime = 3000L;
 
-      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName))
-          .thenThrow(new PauserException("Can not find any target pods."));
+        PauseTarget target = mock(PauseTarget.class);
+        ScalarAdminClient client = mock(ScalarAdminClient.class);
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plusMillis(pauseDuration);
+        PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
 
-      // Act & Assert
-      PauserException thrown =
-          assertThrows(PauserException.class, () -> applicationService.execute(command));
-      assertEquals("Can not find any target pods.", thrown.getMessage());
-    }
+        PauseByDeploymentNameCommand command =
+            PauseByDeploymentNameCommand.create(
+                namespace, deploymentName, adminPort, pauseDuration, maxPauseWaitTime);
 
-    @Test
-    void execute_WhenClientFactoryThrowsException_ThrowPauserException() throws PauserException {
-      // Arrange
-      String namespace = "test-ns";
-      String helmReleaseName = "test-release";
+        when(kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort))
+            .thenReturn(target);
+        when(scalarAdminClientFactory.createClient(target)).thenReturn(client);
+        when(pauseService.pause(
+                eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
+            .thenReturn(domainPauseDuration);
 
-      PauseTarget target = mock(PauseTarget.class);
-      PauseByHelmReleaseCommand command =
-          PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
+        // Act
+        PauseDurationDto actual = applicationService.execute(command);
 
-      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(scalarAdminClientFactory.createClient(target))
-          .thenThrow(new RuntimeException("Client factory error"));
+        // Assert
+        assertThat(actual.startTimeEpochMilli()).isEqualTo(startTime.toEpochMilli());
+        assertThat(actual.endTimeEpochMilli()).isEqualTo(endTime.toEpochMilli());
+        verify(kubernetesClient).resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort);
+        verify(scalarAdminClientFactory).createClient(target);
+        verify(pauseService)
+            .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+      }
 
-      // Act & Assert
-      PauserException thrown =
-          assertThrows(PauserException.class, () -> applicationService.execute(command));
-      assertEquals("Failed to initialize the Scalar Admin client.", thrown.getMessage());
+      @Test
+      @DisplayName("executes pause successfully with TLS command")
+      void executesPauseSuccessfullyWithTlsCommand() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String deploymentName = "test-deployment";
+        int adminPort = 60054;
+        int pauseDuration = 5000;
+        Long maxPauseWaitTime = 3000L;
+        String caRootCert = "dummyCert";
+        String overrideAuthority = "dummyAuthority";
+
+        PauseTarget target = mock(PauseTarget.class);
+        ScalarAdminClient client = mock(ScalarAdminClient.class);
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plusMillis(pauseDuration);
+        PauseDuration domainPauseDuration = new PauseDuration(startTime, endTime);
+
+        PauseByDeploymentNameCommand command =
+            PauseByDeploymentNameCommand.createWithTls(
+                namespace,
+                deploymentName,
+                adminPort,
+                pauseDuration,
+                maxPauseWaitTime,
+                caRootCert,
+                overrideAuthority);
+
+        when(kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort))
+            .thenReturn(target);
+        when(scalarAdminClientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
+        when(pauseService.pause(
+                eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
+            .thenReturn(domainPauseDuration);
+
+        // Act
+        PauseDurationDto actual = applicationService.execute(command);
+
+        // Assert
+        assertThat(actual.startTimeEpochMilli()).isEqualTo(startTime.toEpochMilli());
+        assertThat(actual.endTimeEpochMilli()).isEqualTo(endTime.toEpochMilli());
+        verify(kubernetesClient).resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort);
+        verify(scalarAdminClientFactory).createClient(eq(target), any(TlsConfig.class));
+        verify(pauseService)
+            .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
+      }
+
+      @Test
+      @DisplayName("throws PauserException when kubernetesClient throws exception")
+      void throwsPauserExceptionWhenRepositoryThrowsException() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String deploymentName = "test-deployment";
+        int adminPort = 60054;
+
+        PauseByDeploymentNameCommand command =
+            PauseByDeploymentNameCommand.create(namespace, deploymentName, adminPort, 5000, 3000L);
+
+        when(kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort))
+            .thenThrow(new RuntimeException("Repository error"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isInstanceOf(PauserException.class)
+            .hasMessage("Failed to find the target pods to pause.");
+      }
+
+      @Test
+      @DisplayName("throws PauserException when client factory throws exception")
+      void throwsPauserExceptionWhenClientFactoryThrowsException() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String deploymentName = "test-deployment";
+        int adminPort = 60054;
+
+        PauseTarget target = mock(PauseTarget.class);
+        PauseByDeploymentNameCommand command =
+            PauseByDeploymentNameCommand.create(namespace, deploymentName, adminPort, 5000, 3000L);
+
+        when(kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort))
+            .thenReturn(target);
+        when(scalarAdminClientFactory.createClient(target))
+            .thenThrow(new RuntimeException("Client factory error"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isInstanceOf(PauserException.class)
+            .hasMessage("Failed to initialize the Scalar Admin client.");
+      }
     }
   }
 }
