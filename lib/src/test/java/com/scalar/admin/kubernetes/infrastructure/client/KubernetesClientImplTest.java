@@ -1,5 +1,7 @@
 package com.scalar.admin.kubernetes.infrastructure.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +18,8 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1DeploymentSpec;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
@@ -31,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 public class KubernetesClientImplTest {
@@ -44,7 +50,7 @@ public class KubernetesClientImplTest {
     appsV1Api = mock(AppsV1Api.class);
 
     mockCoreV1Api();
-    mockAppsV1Api();
+    mockAppsV1ApiForListNamespacedDeployment();
   }
 
   
@@ -70,10 +76,10 @@ public class KubernetesClientImplTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -103,10 +109,10 @@ public class KubernetesClientImplTest {
         .thenReturn(podList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -145,10 +151,10 @@ public class KubernetesClientImplTest {
         .thenReturn(podList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -183,10 +189,10 @@ public class KubernetesClientImplTest {
         .thenReturn(podList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -221,10 +227,10 @@ public class KubernetesClientImplTest {
         .thenReturn(podList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -254,10 +260,10 @@ public class KubernetesClientImplTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -288,10 +294,10 @@ public class KubernetesClientImplTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -318,10 +324,10 @@ public class KubernetesClientImplTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -348,10 +354,10 @@ public class KubernetesClientImplTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -381,10 +387,10 @@ public class KubernetesClientImplTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -420,10 +426,10 @@ public class KubernetesClientImplTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -463,10 +469,10 @@ public class KubernetesClientImplTest {
         .thenReturn(seriveList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -505,10 +511,10 @@ public class KubernetesClientImplTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -552,10 +558,10 @@ public class KubernetesClientImplTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
+    Throwable thrown = assertThrows(PauserException.class, () -> kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -567,9 +573,9 @@ public class KubernetesClientImplTest {
     String helmReleaseName = "helmReleaseName";
 
     // Act
-    KubernetesClientImpl repository =
+    KubernetesClientImpl kubernetesClient =
         new KubernetesClientImpl(coreV1Api, appsV1Api);
-    PauseTarget target = repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
+    PauseTarget target = kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
 
     // Assert
     assertEquals(1, target.adminPort());
@@ -581,6 +587,331 @@ public class KubernetesClientImplTest {
         pods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toList());
     assertTrue(podNames.contains("pod1"));
     assertTrue(podNames.contains("pod2"));
+  }
+
+  @Nested
+  @DisplayName("getDeployment()")
+  class GetDeployment {
+
+    @BeforeEach
+    void setUp() throws ApiException {
+      mockAppsV1ApiForReadNamespacedDeployment();
+    }
+
+    @Nested
+    @DisplayName("when deployment exists")
+    class WhenDeploymentExists {
+
+      @Test
+      @DisplayName("returns V1Deployment")
+      void returnsV1Deployment() throws ApiException, PauserException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act
+        V1Deployment deployment = kubernetesClient.getDeployment(namespace, deploymentName);
+
+        // Assert
+        assertEquals(deploymentName, deployment.getMetadata().getName());
+        assertEquals(namespace, deployment.getMetadata().getNamespace());
+      }
+    }
+
+    @Nested
+    @DisplayName("when readNamespacedDeployment throws ApiException")
+    class WhenReadNamespacedDeploymentThrowsApiException {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        when(appsV1Api.readNamespacedDeployment(deploymentName, namespace, null))
+            .thenThrow(new ApiException("", 404, null, "mock response body"));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.getDeployment(namespace, deploymentName))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("Kubernetes readNamespacedDeployment API error with code 404");
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("extractLabelSelectorFromDeployment()")
+  class BuildLabelSelectorFromDeployment {
+
+    @Nested
+    @DisplayName("when deployment has valid selector")
+    class WhenDeploymentHasValidSelector {
+
+      @Test
+      @DisplayName("returns label selector string")
+      void returnsLabelSelectorString() throws ApiException, PauserException {
+        // Arrange
+        String deploymentName = "scalardb-cluster";
+
+        V1Deployment deployment =
+            mockDeploymentWithSelector(deploymentName, "v1", "scalardb-cluster");
+        deployment.getMetadata().setNamespace("default");
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act
+        String labelSelector = kubernetesClient.extractLabelSelectorFromDeployment(deployment);
+
+        // Assert
+        // The label selector format is "key = value" (with spaces)
+        assertEquals("app.kubernetes.io/app = scalardb-cluster", labelSelector);
+      }
+    }
+
+    @Nested
+    @DisplayName("when deployment has no spec")
+    class WhenDeploymentHasNoSpec {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        V1Deployment deployment = new V1Deployment();
+        deployment.setMetadata(new V1ObjectMeta().name(deploymentName).namespace(namespace));
+        deployment.setSpec(null);
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.extractLabelSelectorFromDeployment(deployment))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("does not have a spec");
+      }
+    }
+
+    @Nested
+    @DisplayName("when deployment has no selector")
+    class WhenDeploymentHasNoSelector {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        V1Deployment deployment = new V1Deployment();
+        deployment.setMetadata(new V1ObjectMeta().name(deploymentName).namespace(namespace));
+        deployment.setSpec(new V1DeploymentSpec().selector(null));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.extractLabelSelectorFromDeployment(deployment))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("does not have a selector");
+      }
+    }
+
+    @Nested
+    @DisplayName("when deployment has empty selector")
+    class WhenDeploymentHasEmptySelector {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        V1Deployment deployment = new V1Deployment();
+        deployment.setMetadata(new V1ObjectMeta().name(deploymentName).namespace(namespace));
+        deployment.setSpec(
+            new V1DeploymentSpec()
+                .selector(new V1LabelSelector().matchLabels(null).matchExpressions(null)));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.extractLabelSelectorFromDeployment(deployment))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("has an empty selector");
+      }
+    }
+
+    @Nested
+    @DisplayName("when deployment has invalid selector operator")
+    class WhenDeploymentHasInvalidSelectorOperator {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+
+        V1Deployment deployment = new V1Deployment();
+        deployment.setMetadata(new V1ObjectMeta().name(deploymentName).namespace(namespace));
+        deployment.setSpec(
+            new V1DeploymentSpec()
+                .selector(
+                    new V1LabelSelector()
+                        .addMatchExpressionsItem(
+                            new io.kubernetes.client.openapi.models.V1LabelSelectorRequirement()
+                                .key("app")
+                                .operator("InvalidOperator")
+                                .addValuesItem("scalardb-cluster"))));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.extractLabelSelectorFromDeployment(deployment))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("has an invalid selector");
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("findPodsByLabelSelector()")
+  class FindPodsByLabelSelector {
+
+    @BeforeEach
+    void setUp() throws ApiException {
+      mockCoreV1Api();
+    }
+
+    @Nested
+    @DisplayName("when pods are found")
+    class WhenPodsAreFound {
+
+      @Test
+      @DisplayName("returns list of V1Pod")
+      void returnsListOfV1Pod() throws ApiException, PauserException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+        String labelSelector = "app=scalardb-cluster";
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act
+        List<V1Pod> pods =
+            kubernetesClient.findPodsByLabelSelector(namespace, deploymentName, labelSelector);
+
+        // Assert
+        assertEquals(2, pods.size());
+      }
+    }
+
+    @Nested
+    @DisplayName("when listNamespacedPod throws ApiException")
+    class WhenListNamespacedPodThrowsApiException {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+        String labelSelector = "app=scalardb-cluster";
+
+        when(coreV1Api.listNamespacedPod(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenThrow(new ApiException("", 0, null, "mock response body"));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(
+                () ->
+                    kubernetesClient.findPodsByLabelSelector(namespace, deploymentName, labelSelector))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("Kubernetes listNamespacedPod API error with code 0");
+      }
+    }
+
+    @Nested
+    @DisplayName("when no pods are found")
+    class WhenNoPodsAreFound {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() throws ApiException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+        String labelSelector = "app=scalardb-cluster";
+
+        when(coreV1Api.listNamespacedPod(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new V1PodList().items(new ArrayList<>()));
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(
+                () ->
+                    kubernetesClient.findPodsByLabelSelector(namespace, deploymentName, labelSelector))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("does not have any running pods");
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("resolvePauseTargetByDeploymentName()")
+  class FindByDeploymentName {
+
+    @BeforeEach
+    void setUp() throws ApiException {
+      mockCoreV1Api();
+      mockAppsV1ApiForReadNamespacedDeployment();
+    }
+
+    @Nested
+    @DisplayName("when all components work correctly")
+    class WhenAllComponentsWorkCorrectly {
+
+      @Test
+      @DisplayName("returns PauseTarget with correct pods, deployment, and adminPort")
+      void returnsPauseTargetWithCorrectPodsDeploymentAndAdminPort()
+          throws ApiException, PauserException {
+        // Arrange
+        String namespace = "default";
+        String deploymentName = "scalardb-cluster";
+        int adminPort = 60054;
+
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act
+        PauseTarget pauseTarget =
+            kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort);
+
+        // Assert
+        assertEquals(2, pauseTarget.pods().size());
+        assertEquals(deploymentName, pauseTarget.deployment().getMetadata().getName());
+        assertEquals(adminPort, pauseTarget.adminPort());
+      }
+    }
   }
 
   private void mockCoreV1Api() throws ApiException {
@@ -602,7 +933,8 @@ public class KubernetesClientImplTest {
         .thenReturn(serviceList);
   }
 
-  private void mockAppsV1Api() throws ApiException {
+  private void mockAppsV1ApiForListNamespacedDeployment() throws ApiException {
+    // Mock listNamespacedDeployment - returns deployments without selector
     V1DeploymentList deploymentList = new V1DeploymentList();
     List<V1Deployment> deployments = Arrays.asList(mockDeployment("deployment1", "1", "scalardb"));
     deploymentList.setItems(deployments);
@@ -610,6 +942,13 @@ public class KubernetesClientImplTest {
     when(appsV1Api.listNamespacedDeployment(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(deploymentList);
+  }
+
+  private void mockAppsV1ApiForReadNamespacedDeployment() throws ApiException {
+    // Mock readNamespacedDeployment - returns deployment with selector
+    V1Deployment deployment = mockDeploymentWithSelector("scalardb-cluster", "1", "scalardb");
+    deployment.getMetadata().setNamespace("default");
+    when(appsV1Api.readNamespacedDeployment(any(), any(), any())).thenReturn(deployment);
   }
 
   private V1Pod mockPod(
@@ -646,6 +985,33 @@ public class KubernetesClientImplTest {
 
     V1Deployment deployment = new V1Deployment();
     deployment.setMetadata(metadata);
+
+    return deployment;
+  }
+
+  private V1Deployment mockDeploymentWithSelector(
+      String name, String resourceVersion, String appLabelValue) {
+    Map<String, String> labels = new HashMap<>();
+    labels.put("app.kubernetes.io/app", appLabelValue);
+
+    V1ObjectMeta metadata = new V1ObjectMeta();
+    metadata.setLabels(labels);
+    metadata.setResourceVersion(resourceVersion);
+    metadata.setName(name);
+
+    // Create selector with matchLabels
+    Map<String, String> matchLabels = new HashMap<>();
+    matchLabels.put("app.kubernetes.io/app", appLabelValue);
+
+    V1LabelSelector selector = new V1LabelSelector();
+    selector.setMatchLabels(matchLabels);
+
+    V1DeploymentSpec spec = new V1DeploymentSpec();
+    spec.setSelector(selector);
+
+    V1Deployment deployment = new V1Deployment();
+    deployment.setMetadata(metadata);
+    deployment.setSpec(spec);
 
     return deployment;
   }
