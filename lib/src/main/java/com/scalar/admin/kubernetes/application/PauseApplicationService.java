@@ -3,6 +3,7 @@ package com.scalar.admin.kubernetes.application;
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseByDeploymentNameCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
@@ -69,6 +70,8 @@ public class PauseApplicationService {
   public PauseDurationDto execute(PauseCommand command) throws PauserException {
     return switch (command) {
       case PauseByHelmReleaseCommand cmd -> executePauseByHelmRelease(cmd);
+      case PauseByDeploymentNameCommand cmd -> throw new UnsupportedOperationException(
+          "DEPLOYMENT mode is not yet implemented. Only HELM_RELEASE mode is currently supported.");
     };
   }
 
