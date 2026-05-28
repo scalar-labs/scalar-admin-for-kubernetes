@@ -18,7 +18,6 @@ jobs:
     strategy:
       matrix:
         productName:
-          - scalardb
           - scalardb-cluster
           - scalardl
           - scalardl-audit
