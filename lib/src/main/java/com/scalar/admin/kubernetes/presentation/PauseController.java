@@ -4,10 +4,10 @@ import com.scalar.admin.kubernetes.application.PauseApplicationService;
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
-import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
+import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
+import com.scalar.admin.kubernetes.infrastructure.client.KubernetesClientImpl;
 import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
-import com.scalar.admin.kubernetes.infrastructure.repository.PauseTargetRepositoryImpl;
 import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -37,12 +37,12 @@ public class PauseController {
       throw new PauserException("Failed to set default Kubernetes client.", e);
     }
 
-    PauseTargetRepository repository =
-        new PauseTargetRepositoryImpl(new CoreV1Api(), new AppsV1Api());
+    KubernetesClient kubernetesClient =
+        new KubernetesClientImpl(new CoreV1Api(), new AppsV1Api());
     ScalarAdminClientFactory clientFactory = new ScalarAdminClientFactory();
     PauseService pauseService = new PauseService();
 
-    this.applicationService = new PauseApplicationService(repository, clientFactory, pauseService);
+    this.applicationService = new PauseApplicationService(kubernetesClient, clientFactory, pauseService);
   }
 
   /**

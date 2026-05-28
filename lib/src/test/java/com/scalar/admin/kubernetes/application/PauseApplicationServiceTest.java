@@ -10,7 +10,7 @@ import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.pause.TlsConfig;
-import com.scalar.admin.kubernetes.domain.repository.PauseTargetRepository;
+import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
 import java.time.Instant;
@@ -20,17 +20,17 @@ import org.junit.jupiter.api.Test;
 
 class PauseApplicationServiceTest {
 
-  private PauseTargetRepository repository;
-  private ScalarAdminClientFactory clientFactory;
+  private KubernetesClient kubernetesClient;
+  private ScalarAdminClientFactory scalarAdminClientFactory;
   private PauseService pauseService;
   private PauseApplicationService applicationService;
 
   @BeforeEach
   void beforeEach() {
-    repository = mock(PauseTargetRepository.class);
-    clientFactory = mock(ScalarAdminClientFactory.class);
+    kubernetesClient = mock(KubernetesClient.class);
+    scalarAdminClientFactory = mock(ScalarAdminClientFactory.class);
     pauseService = mock(PauseService.class);
-    applicationService = new PauseApplicationService(repository, clientFactory, pauseService);
+    applicationService = new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, pauseService);
   }
 
   @Nested
@@ -39,7 +39,7 @@ class PauseApplicationServiceTest {
     void constructor_WithValidArgs_CreateInstance() {
       // Act & Assert
       assertDoesNotThrow(
-          () -> new PauseApplicationService(repository, clientFactory, pauseService));
+          () -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, pauseService));
     }
 
     @Test
@@ -48,8 +48,8 @@ class PauseApplicationServiceTest {
       IllegalArgumentException thrown =
           assertThrows(
               IllegalArgumentException.class,
-              () -> new PauseApplicationService(null, clientFactory, pauseService));
-      assertEquals("pauseTargetRepository is required", thrown.getMessage());
+              () -> new PauseApplicationService(null, scalarAdminClientFactory, pauseService));
+      assertEquals("kubernetesClient is required", thrown.getMessage());
     }
 
     @Test
@@ -58,7 +58,7 @@ class PauseApplicationServiceTest {
       IllegalArgumentException thrown =
           assertThrows(
               IllegalArgumentException.class,
-              () -> new PauseApplicationService(repository, null, pauseService));
+              () -> new PauseApplicationService(kubernetesClient, null, pauseService));
       assertEquals("clientFactory is required", thrown.getMessage());
     }
 
@@ -68,7 +68,7 @@ class PauseApplicationServiceTest {
       IllegalArgumentException thrown =
           assertThrows(
               IllegalArgumentException.class,
-              () -> new PauseApplicationService(repository, clientFactory, null));
+              () -> new PauseApplicationService(kubernetesClient, scalarAdminClientFactory, null));
       assertEquals("pauseService is required", thrown.getMessage());
     }
   }
@@ -93,8 +93,8 @@ class PauseApplicationServiceTest {
           PauseByHelmReleaseCommand.create(
               namespace, helmReleaseName, pauseDuration, maxPauseWaitTime);
 
-      when(repository.findByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(clientFactory.createClient(target)).thenReturn(client);
+      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+      when(scalarAdminClientFactory.createClient(target)).thenReturn(client);
       when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
           .thenReturn(domainPauseDuration);
 
@@ -104,8 +104,8 @@ class PauseApplicationServiceTest {
       // Assert
       assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
       assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
-      verify(repository).findByHelmRelease(namespace, helmReleaseName);
-      verify(clientFactory).createClient(target);
+      verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
+      verify(scalarAdminClientFactory).createClient(target);
       verify(pauseService)
           .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
     }
@@ -135,8 +135,8 @@ class PauseApplicationServiceTest {
               caRootCert,
               overrideAuthority);
 
-      when(repository.findByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(clientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
+      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+      when(scalarAdminClientFactory.createClient(eq(target), any(TlsConfig.class))).thenReturn(client);
       when(pauseService.pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime)))
           .thenReturn(domainPauseDuration);
 
@@ -146,8 +146,8 @@ class PauseApplicationServiceTest {
       // Assert
       assertEquals(startTime.toEpochMilli(), actual.startTimeEpochMilli());
       assertEquals(endTime.toEpochMilli(), actual.endTimeEpochMilli());
-      verify(repository).findByHelmRelease(namespace, helmReleaseName);
-      verify(clientFactory).createClient(eq(target), any(TlsConfig.class));
+      verify(kubernetesClient).resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
+      verify(scalarAdminClientFactory).createClient(eq(target), any(TlsConfig.class));
       verify(pauseService)
           .pause(eq(target), any(), eq(client), eq(pauseDuration), eq(maxPauseWaitTime));
     }
@@ -161,7 +161,7 @@ class PauseApplicationServiceTest {
       PauseByHelmReleaseCommand command =
           PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
 
-      when(repository.findByHelmRelease(namespace, helmReleaseName))
+      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName))
           .thenThrow(new RuntimeException("Repository error"));
 
       // Act & Assert
@@ -180,8 +180,8 @@ class PauseApplicationServiceTest {
       PauseByHelmReleaseCommand command =
           PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
 
-      when(repository.findByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
-      when(clientFactory.createClient(target))
+      when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName)).thenReturn(target);
+      when(scalarAdminClientFactory.createClient(target))
           .thenThrow(new RuntimeException("Client factory error"));
 
       // Act & Assert
