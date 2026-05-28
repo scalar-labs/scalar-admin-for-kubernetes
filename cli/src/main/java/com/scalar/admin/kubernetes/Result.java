@@ -1,9 +1,12 @@
 package com.scalar.admin.kubernetes;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
+
 import java.time.Instant;
 import java.time.ZoneId;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
@@ -11,8 +14,18 @@ class Result {
 
   public final String namespace;
 
+  @JsonProperty("pod_discovery_mode")
+  public final String podDiscoveryMode;
+
   @JsonProperty("helm_release_name")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
   public final String helmReleaseName;
+
+  @JsonProperty("deployment_name")
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  public final String deploymentName;
 
   @JsonProperty("pause_start_timestamp_ms")
   public final long pauseStartTimestampMs;
@@ -29,9 +42,16 @@ class Result {
   public final String timezone;
 
   Result(
-      String namespace, String helmReleaseName, PauseDurationDto pauseDurationDto, ZoneId zoneId) {
+      String namespace,
+      String podDiscoveryMode,
+      @Nullable String helmReleaseName,
+      @Nullable String deploymentName,
+      PauseDurationDto pauseDurationDto,
+      ZoneId zoneId) {
     this.namespace = namespace;
+    this.podDiscoveryMode = podDiscoveryMode;
     this.helmReleaseName = helmReleaseName;
+    this.deploymentName = deploymentName;
     this.pauseStartTimestampMs = pauseDurationDto.startTimeEpochMilli();
     this.pauseEndTimestampMs = pauseDurationDto.endTimeEpochMilli();
     this.pauseStartDateTime =
