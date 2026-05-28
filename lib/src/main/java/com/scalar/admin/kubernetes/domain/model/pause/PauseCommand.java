@@ -9,9 +9,9 @@ package com.scalar.admin.kubernetes.domain.model.pause;
  * <p>Each implementation represents a specific way to identify and pause target pods in a
  * Kubernetes cluster.
  */
-public sealed interface PauseCommand permits PauseByHelmReleaseCommand {
+public sealed interface PauseCommand
+    permits PauseByHelmReleaseCommand, PauseByDeploymentNameCommand {
   // Future implementations might include:
-  // - PauseByDeploymentCommand
   // - PauseByLabelSelectorCommand
 
   /**
