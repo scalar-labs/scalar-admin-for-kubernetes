@@ -1,9 +1,9 @@
 ledger:
   ledgerProperties: |
     scalar.db.storage=jdbc
-    scalar.db.contact_points=jdbc:postgresql://dummy.default.svc.cluster.local:5432/postgres
-    scalar.db.username=postgres
-    scalar.db.password=postgres
+    scalar.db.contact_points=jdbc:sqlite:/tmp/sqlite.db?busy_timeout=10000
+  imagePullSecrets:
+    - name: reg-docker-secrets
 
 envoy:
   enabled: false
