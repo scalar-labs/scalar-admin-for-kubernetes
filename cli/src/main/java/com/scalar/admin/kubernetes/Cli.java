@@ -155,8 +155,14 @@ class Cli implements Callable<Integer> {
       // Execute pause operation
       PauseDurationDto durationDto = controller.pause(request);
 
-      // Build result
-      result = new Result(namespace, helmReleaseName, durationDto, zoneId);
+      // Build result based on mode
+      result =
+          new Result(
+              namespace,
+              helmReleaseName,
+              deploymentName,
+              durationDto,
+              zoneId);
       ObjectMapper mapper = new ObjectMapper();
       System.out.println(mapper.writeValueAsString(result));
     } catch (JsonProcessingException e) {
