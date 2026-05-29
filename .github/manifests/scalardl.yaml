@@ -1,9 +1,16 @@
 ledger:
   ledgerProperties: |
     scalar.db.storage=jdbc
-    scalar.db.contact_points=jdbc:sqlite:/tmp/sqlite.db?busy_timeout=10000
+    scalar.db.contact_points=jdbc:sqlite:/sqlite/tmp.db?busy_timeout=10000
   imagePullSecrets:
     - name: reg-docker-secrets
+  extraVolumes:
+    - name: sqlite
+      persistentVolumeClaim:
+        claimName: sqlite
+  extraVolumeMounts:
+    - name: sqlite
+      mountPath: /sqlite
 
 envoy:
   enabled: false

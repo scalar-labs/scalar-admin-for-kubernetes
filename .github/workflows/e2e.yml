@@ -55,6 +55,10 @@ jobs:
         run: |
           kubectl create secret docker-registry reg-docker-secrets --docker-server=${DOCKER_REGISTRY_SERVER} --docker-username=${DOCKER_REGISTRY_USERNAME} --docker-password=${DOCKER_REGISTRY_PASSWORD}
 
+      - name: Create PVC for SQLite
+        run: |
+          kubectl apply -f .github/manifests/sqlite-pvc.yaml
+
       - name: Deploy Scalar products to Kind
         run: |
           helm install foo scalar-labs/${{ matrix.productName }} -f .github/manifests/${{ matrix.productName }}.yaml
