@@ -114,7 +114,7 @@ class PauserTest {
   class Pause {
 
     @Test
-    void pause_WhenPauseSucceeded_ReturnPausedDuration() throws PauserException {
+    void pause_WhenPauseSucceeded_ReturnPauseDuration() throws PauserException {
       Map<String, Integer> podRestartCounts =
           new HashMap<String, Integer>() {
             {
@@ -149,8 +149,8 @@ class PauserTest {
       doNothing().when(pauser).unpauseWithRetry(any(), anyInt());
 
       // Act & Assert
-      PausedDuration actual = assertDoesNotThrow(() -> pauser.pause(pauseDuration, 3000L));
-      PausedDuration expected = new PausedDuration(startTime, endTime);
+      PauseDuration actual = assertDoesNotThrow(() -> pauser.pause(pauseDuration, 3000L));
+      PauseDuration expected = new PauseDuration(startTime, endTime);
       assertEquals(actual.getStartTime(), expected.getStartTime());
       assertEquals(actual.getEndTime(), expected.getEndTime());
 
@@ -306,7 +306,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -333,7 +333,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -358,7 +358,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -383,7 +383,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -453,7 +453,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doThrow(RuntimeException.class).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -481,7 +481,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);
@@ -509,7 +509,7 @@ class PauserTest {
       Instant endTime = Instant.now().plus(5, SECONDS);
 
       Pauser pauser = spy(new Pauser(namespace, helmReleaseName));
-      PausedDuration pausedDuration = new PausedDuration(startTime, endTime);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
 
       doReturn(targetBeforePause).doReturn(targetAfterPause).when(pauser).getTarget();
       doReturn(requestCoordinator).when(pauser).getRequestCoordinator(targetBeforePause);

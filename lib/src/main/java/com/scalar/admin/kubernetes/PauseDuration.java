@@ -4,12 +4,12 @@ import java.time.Instant;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
-public class PausedDuration {
+public class PauseDuration {
 
   private final Instant startTime;
   private final Instant endTime;
 
-  PausedDuration(Instant startTime, Instant endTime) {
+  PauseDuration(Instant startTime, Instant endTime) {
     this.startTime = startTime;
     this.endTime = endTime;
   }

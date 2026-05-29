@@ -26,7 +26,7 @@ class Result {
 
   public final String timezone;
 
-  Result(String namespace, String helmReleaseName, PausedDuration pausedDuration, ZoneId zoneId) {
+  Result(String namespace, String helmReleaseName, PauseDuration pausedDuration, ZoneId zoneId) {
     this.namespace = namespace;
     this.helmReleaseName = helmReleaseName;
     this.pauseStartTimestampMs = pausedDuration.getStartTime().toEpochMilli();

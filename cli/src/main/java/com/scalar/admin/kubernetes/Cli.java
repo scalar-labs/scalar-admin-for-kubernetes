@@ -113,7 +113,7 @@ class Cli implements Callable<Integer> {
               ? new TlsPauser(namespace, helmReleaseName, getCaRootCert(), overrideAuthority)
               : new Pauser(namespace, helmReleaseName);
 
-      PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
+      PauseDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
 
       result = new Result(namespace, helmReleaseName, duration, zoneId);
       ObjectMapper mapper = new ObjectMapper();
