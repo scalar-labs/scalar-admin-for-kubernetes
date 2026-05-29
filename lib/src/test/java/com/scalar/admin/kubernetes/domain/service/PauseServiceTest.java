@@ -251,7 +251,7 @@ class PauseServiceTest {
     }
 
     @Test
-    void pause_WhenTargetPodStatusChanged_ShouldThrowStatusUnmatchedException()
+    void pause_WhenDeploymentResourceVersionChanges_ShouldThrowStatusUnmatchedException()
         throws PauserException {
       // Arrange
       int pauseDuration = 1;
@@ -267,21 +267,147 @@ class PauseServiceTest {
       Map<String, Integer> podRestartCounts =
           new HashMap<String, Integer>() {
             {
-              put("dummyKey", 1);
+              put("pod-1", 0);
             }
           };
       Map<String, String> podResourceVersions =
           new HashMap<String, String>() {
             {
-              put("dummyKey", "dummyValue");
+              put("pod-1", "12345");
             }
           };
       PauseTarget.Status beforeTargetStatus =
-          new PauseTarget.Status(podRestartCounts, podResourceVersions, "beforeDifferentValue");
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "beforeVersion");
       PauseTarget.Status afterTargetStatus =
-          new PauseTarget.Status(podRestartCounts, podResourceVersions, "afterDifferentValue");
+          new PauseTarget.Status(podRestartCounts, podResourceVersions, "afterVersion");
       doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
       doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
+
+      // Act & Assert
+      StatusUnmatchedException thrown =
+          assertThrows(
+              StatusUnmatchedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
+      assertEquals(STATUS_UNMATCHED_ERROR_MESSAGE, thrown.getMessage());
+    }
+
+    @Test
+    void pause_WhenPodNameChanges_ShouldThrowStatusUnmatchedException()
+        throws PauserException {
+      // Arrange
+      PauseService service = spy(new PauseService());
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
+
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+
+      Map<String, Integer> beforePodRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("pod-1", 0);
+              put("pod-2", 0);
+              put("pod-3", 0);
+            }
+          };
+      Map<String, Integer> afterPodRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("pod-1", 0);
+              put("pod-2", 0);
+              put("pod-4", 0); // pod-3 deleted and pod-4 created (name changed)
+            }
+          };
+      Map<String, String> beforePodResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("pod-1", "12345");
+              put("pod-2", "12346");
+              put("pod-3", "12347");
+            }
+          };
+      Map<String, String> afterPodResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("pod-1", "12345");
+              put("pod-2", "12346");
+              put("pod-4", "12348"); // new pod has new resource version
+            }
+          };
+      PauseTarget.Status beforeTargetStatus =
+          new PauseTarget.Status(beforePodRestartCounts, beforePodResourceVersions, "sameVersion");
+      PauseTarget.Status afterTargetStatus =
+          new PauseTarget.Status(afterPodRestartCounts, afterPodResourceVersions, "sameVersion");
+      doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
+
+      int pauseDuration = 1;
+
+      // Act & Assert
+      StatusUnmatchedException thrown =
+          assertThrows(
+              StatusUnmatchedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
+      assertEquals(STATUS_UNMATCHED_ERROR_MESSAGE, thrown.getMessage());
+    }
+
+    @Test
+    void pause_WhenPodRestartCountChanges_ShouldThrowStatusUnmatchedException()
+        throws PauserException {
+      // Arrange
+      PauseService service = spy(new PauseService());
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
+
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+
+      Map<String, Integer> beforePodRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("pod-1", 0);
+              put("pod-2", 0);
+              put("pod-3", 0);
+            }
+          };
+      Map<String, Integer> afterPodRestartCounts =
+          new HashMap<String, Integer>() {
+            {
+              put("pod-1", 0);
+              put("pod-2", 1); // restart count changed for one pod
+              put("pod-3", 0);
+            }
+          };
+      Map<String, String> beforePodResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("pod-1", "12345");
+              put("pod-2", "12346");
+              put("pod-3", "12347");
+            }
+          };
+      Map<String, String> afterPodResourceVersions =
+          new HashMap<String, String>() {
+            {
+              put("pod-1", "12345");
+              put("pod-2", "12350"); // resource version also changed when container restarted
+              put("pod-3", "12347");
+            }
+          };
+      PauseTarget.Status beforeTargetStatus =
+          new PauseTarget.Status(beforePodRestartCounts, beforePodResourceVersions, "sameValue");
+      PauseTarget.Status afterTargetStatus =
+          new PauseTarget.Status(afterPodRestartCounts, afterPodResourceVersions, "sameValue");
+      doReturn(beforeTargetStatus).when(targetBeforePause).toStatus();
+      doReturn(afterTargetStatus).when(targetAfterPause).toStatus();
+
+      int pauseDuration = 1;
 
       // Act & Assert
       StatusUnmatchedException thrown =
