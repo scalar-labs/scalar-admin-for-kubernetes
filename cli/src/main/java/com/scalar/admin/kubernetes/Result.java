@@ -1,6 +1,7 @@
 package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import java.time.ZoneId;
 import javax.annotation.concurrent.Immutable;
 

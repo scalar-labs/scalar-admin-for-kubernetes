@@ -2,6 +2,7 @@ package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;

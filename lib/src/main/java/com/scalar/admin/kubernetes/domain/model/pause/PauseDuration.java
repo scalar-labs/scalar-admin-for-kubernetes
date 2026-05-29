@@ -1,4 +1,4 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.domain.model.pause;
 
 import java.time.Instant;
 import javax.annotation.concurrent.Immutable;
@@ -9,7 +9,7 @@ public class PauseDuration {
   private final Instant startTime;
   private final Instant endTime;
 
-  PauseDuration(Instant startTime, Instant endTime) {
+  public PauseDuration(Instant startTime, Instant endTime) {
     this.startTime = startTime;
     this.endTime = endTime;
   }

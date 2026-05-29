@@ -9,6 +9,7 @@ import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.exception.StatusCheckFailedException;
 import com.scalar.admin.kubernetes.domain.exception.StatusUnmatchedException;
 import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
