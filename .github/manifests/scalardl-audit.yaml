@@ -4,11 +4,13 @@ auditor:
   auditorProperties: |
     scalar.db.storage=jdbc
     scalar.db.contact_points=jdbc:sqlite:/tmp/sqlite.db?busy_timeout=10000
-    scalar.dl.auditor.cert_holder_id=auditor
-    scalar.dl.auditor.cert_path=/keys/certificate
-    scalar.dl.auditor.private_key_path=/keys/private-key
+    scalar.dl.auditor.authentication.method=hmac
+    scalar.dl.auditor.authentication.hmac.cipher_key=dummy-cipher-key
+    scalar.dl.auditor.servers.authentication.hmac.secret_key=dummy-secret-key
   imagePullSecrets:
     - name: reg-docker-secrets
+  authentication:
+    method: "hmac"
 
 envoy:
   enabled: false

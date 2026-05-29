@@ -55,11 +55,6 @@ jobs:
         run: |
           kubectl create secret docker-registry reg-docker-secrets --docker-server=${DOCKER_REGISTRY_SERVER} --docker-username=${DOCKER_REGISTRY_USERNAME} --docker-password=${DOCKER_REGISTRY_PASSWORD}
 
-      - name: Create secret resource for ScalarDL Auditor
-        if: ${{ matrix.productName == 'scalardl-audit' }}
-        run: |
-          kubectl create secret generic auditor-keys --from-file=certificate=.github/keys-and-certs/auditor-cert.pem --from-file=private-key=.github/keys-and-certs/auditor-key.pem
-
       - name: Deploy Scalar products to Kind
         run: |
           helm install foo scalar-labs/${{ matrix.productName }} -f .github/manifests/${{ matrix.productName }}.yaml
