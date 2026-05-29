@@ -1,4 +1,4 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.infrastructure.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.scalar.admin.kubernetes.domain.exception.PauserException;
+import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import io.kubernetes.client.custom.IntOrString;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -31,7 +33,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TargetSelectorTest {
+public class KubernetesClientImplTest {
 
   private CoreV1Api coreV1Api;
   private AppsV1Api appsV1Api;
@@ -45,6 +47,7 @@ public class TargetSelectorTest {
     mockAppsV1Api();
   }
 
+  
   @Test
   public void select_coreV1ApiListNamespacedPodThrowApiException_ShouldThrowPauserException()
       throws ApiException {
@@ -67,10 +70,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -100,10 +103,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -142,10 +145,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -180,10 +183,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -218,10 +221,10 @@ public class TargetSelectorTest {
         .thenReturn(podList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -251,10 +254,10 @@ public class TargetSelectorTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -285,10 +288,10 @@ public class TargetSelectorTest {
         .thenReturn(deploymentList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -315,10 +318,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -345,10 +348,10 @@ public class TargetSelectorTest {
         .thenThrow(new ApiException("", 0, null, "mock response body"));
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -378,10 +381,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -417,10 +420,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -460,10 +463,10 @@ public class TargetSelectorTest {
         .thenReturn(seriveList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -502,10 +505,10 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
@@ -549,29 +552,29 @@ public class TargetSelectorTest {
         .thenReturn(serviceList);
 
     // Act & Assert
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
 
-    Throwable thrown = assertThrows(PauserException.class, () -> targetSelector.select());
+    Throwable thrown = assertThrows(PauserException.class, () -> repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName));
 
     assertEquals("Can not find any target pods.", thrown.getMessage());
   }
 
   @Test
-  public void select_NormalCase_ShouldReturnTargetSnapshot() throws Exception {
+  public void select_NormalCase_ShouldReturnPauseTarget() throws Exception {
     // Arrange
     String namespace = "namespace";
     String helmReleaseName = "helmReleaseName";
 
     // Act
-    TargetSelector targetSelector =
-        new TargetSelector(coreV1Api, appsV1Api, namespace, helmReleaseName);
-    TargetSnapshot target = targetSelector.select();
+    KubernetesClientImpl repository =
+        new KubernetesClientImpl(coreV1Api, appsV1Api);
+    PauseTarget target = repository.resolvePauseTargetByHelmRelease(namespace, helmReleaseName);
 
     // Assert
-    assertEquals(1, target.getAdminPort());
+    assertEquals(1, target.adminPort());
 
-    List<V1Pod> pods = target.getPods();
+    List<V1Pod> pods = target.pods();
     assertEquals(2, pods.size());
 
     List<String> podNames =
