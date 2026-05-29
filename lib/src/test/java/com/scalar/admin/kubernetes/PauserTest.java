@@ -152,8 +152,8 @@ class PauserTest {
       // Act & Assert
       PauseDuration actual = assertDoesNotThrow(() -> pauser.pause(pauseDuration, 3000L));
       PauseDuration expected = new PauseDuration(startTime, endTime);
-      assertEquals(actual.getStartTime(), expected.getStartTime());
-      assertEquals(actual.getEndTime(), expected.getEndTime());
+      assertEquals(actual.startTime(), expected.startTime());
+      assertEquals(actual.endTime(), expected.endTime());
 
       mockedTime.close();
     }

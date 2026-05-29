@@ -30,11 +30,11 @@ class Result {
   Result(String namespace, String helmReleaseName, PauseDuration pausedDuration, ZoneId zoneId) {
     this.namespace = namespace;
     this.helmReleaseName = helmReleaseName;
-    this.pauseStartTimestampMs = pausedDuration.getStartTime().toEpochMilli();
-    this.pauseEndTimestampMs = pausedDuration.getEndTime().toEpochMilli();
+    this.pauseStartTimestampMs = pausedDuration.startTime().toEpochMilli();
+    this.pauseEndTimestampMs = pausedDuration.endTime().toEpochMilli();
     this.pauseStartDateTime =
-        pausedDuration.getStartTime().atZone(zoneId).toLocalDateTime().toString();
-    this.pauseEndDateTime = pausedDuration.getEndTime().atZone(zoneId).toLocalDateTime().toString();
+        pausedDuration.startTime().atZone(zoneId).toLocalDateTime().toString();
+    this.pauseEndDateTime = pausedDuration.endTime().atZone(zoneId).toLocalDateTime().toString();
     this.timezone = zoneId.toString();
   }
 }
