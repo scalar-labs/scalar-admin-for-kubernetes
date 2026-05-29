@@ -1,4 +1,4 @@
-package com.scalar.admin.kubernetes;
+package com.scalar.admin.kubernetes.domain.exception;
 
 public class PauseFailedException extends PauserException {
   public PauseFailedException(String message) {
