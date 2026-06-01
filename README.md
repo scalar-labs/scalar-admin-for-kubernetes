@@ -6,13 +6,21 @@ Scalar Admin for Kubernetes is a tool that creates a paused state for ScalarDB o
 
 ```console
 Usage: scalar-admin-for-kubernetes-cli [-h] [--tls]
+                                       [--admin-port=<adminPort>]
                                        [--ca-root-cert-path=<caRootCertPath>]
                                        [--ca-root-cert-pem=<caRootCertPem>]
-                                       [-d=<pauseDuration>] [-n=<namespace>]
-                                       [--override-authority=<overrideAuthority>
-                                       ] -r=<helmReleaseName>
+                                       [-d=<pauseDuration>]
+                                       [--deployment-name=<deploymentName>]
+                                       [-n=<namespace>]
+                                       [--override-authority=<overrideAuthority>]
+                                       [--pod-discovery-mode=<podDiscoveryMode>]
+                                       [-r=<helmReleaseName>]
                                        [-w=<maxPauseWaitTime>] [-z=<zoneId>]
 Scalar Admin pause tool for the Kubernetes environment
+      --admin-port=<adminPort>
+                             The port number of the admin interface of the
+                               Scalar product. Required when --pod-discovery-mode
+                               is deployment.
       --ca-root-cert-path=<caRootCertPath>
                              A path to a root certificate file for verifying
                                the server's certificate when wire encryption is
@@ -26,6 +34,10 @@ Scalar Admin pause tool for the Kubernetes environment
   -d, --pause-duration=<pauseDuration>
                              The duration of the pause period by millisecond.
                                5000 (5 seconds) by default.
+      --deployment-name=<deploymentName>
+                             The name of the Kubernetes Deployment for the
+                               Scalar product. Required when --pod-discovery-mode
+                               is deployment.
   -h, --help                 Display the help message.
   -n, --namespace=<namespace>
                              Namespace that Scalar products you want to pause
@@ -34,11 +46,15 @@ Scalar Admin pause tool for the Kubernetes environment
                              The value to be used as the expected authority in
                                the server's certificate when wire encryption is
                                enabled.
+      --pod-discovery-mode=<podDiscoveryMode>
+                             The mode to discover the target pods. Valid values:
+                               helm-release, deployment. helm-release by default.
   -r, --release-name=<helmReleaseName>
-                             Required. The helm release name that you specify
-                               when you run the `helm install <RELEASE_NAME>`
-                               command. You can see the <RELEASE_NAME> by using
-                               the `helm list` command.
+                             The helm release name that you specify when you run
+                               the `helm install <RELEASE_NAME>` command. You can
+                               see the <RELEASE_NAME> by using the `helm list`
+                               command. Required when --pod-discovery-mode is
+                               helm-release.
       --tls                  Whether wire encryption (TLS) between scalar-admin
                                and the target is enabled.
   -w, --max-pause-wait-time=<maxPauseWaitTime>
@@ -51,6 +67,35 @@ Scalar Admin pause tool for the Kubernetes environment
   -z, --time-zone=<zoneId>   Specify a time zone ID, e.g., Asia/Tokyo, to
                                output successful paused period. Note the time
                                zone ID is case sensitive. Etc/UTC by default.
+```
+
+### Usage Examples
+
+**Using Helm release name (default mode):**
+```bash
+scalar-admin-for-kubernetes-cli \
+  --release-name my-scalardb-cluster \
+  --namespace default \
+  --pause-duration 5000
+```
+
+**Using Helm release name with explicit pod discovery mode:**
+```bash
+scalar-admin-for-kubernetes-cli \
+  --pod-discovery-mode helm-release \
+  --release-name my-scalardb-cluster \
+  --namespace default \
+  --pause-duration 5000
+```
+
+**Using Deployment name (Helm-free mode):**
+```bash
+scalar-admin-for-kubernetes-cli \
+  --pod-discovery-mode deployment \
+  --deployment-name scalardb-cluster-node \
+  --admin-port 60053 \
+  --namespace default \
+  --pause-duration 5000
 ```
 
 ## Run the CLI tool in a Kubernetes environment
@@ -102,7 +147,7 @@ The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its inter
 
 1. Mount the `ServiceAccount` resource on the `scalar-admin-for-kubernetes` pod, replacing the contents in the angle brackets as described:
 
-   * Pod
+   * Pod (using Helm release name)
 
      ```yaml
      apiVersion: v1
@@ -128,6 +173,42 @@ The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its inter
            - -z
            - <TIMEZONE>
      ```
+
+   * Pod (using Deployment name - Helm-free)
+
+     ```yaml
+     apiVersion: v1
+     kind: Pod
+     metadata:
+       name: scalar-admin-for-kubernetes
+       namespace: <YOUR_NAMESPACE>
+     spec:
+       serviceAccountName: scalar-admin-for-kubernetes-sa
+       containers:
+       - name: scalar-admin-for-kubernetes
+         image: ghcr.io/scalar-labs/scalar-admin-for-kubernetes:1.0.0
+         command:
+           - java
+           - -jar
+           - /app.jar
+           - --pod-discovery-mode
+           - deployment
+           - --deployment-name
+           - <DEPLOYMENT_NAME>
+           - --admin-port
+           - <ADMIN_PORT>
+           - -n
+           - <SCALAR_PRODUCT_NAMESPACE>
+           - -d
+           - <PAUSE_DURATION>
+           - -z
+           - <TIMEZONE>
+     ```
+
+     Note: Common admin port values are:
+     - ScalarDB Cluster: 60053
+     - ScalarDL Ledger: 50053
+     - ScalarDL Auditor: 40053
 
 ## Run the CLI tool in a Kubernetes environment by using a Helm Chart
 
