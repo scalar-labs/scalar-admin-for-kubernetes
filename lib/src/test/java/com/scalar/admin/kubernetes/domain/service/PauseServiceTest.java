@@ -1,9 +1,27 @@
 package com.scalar.admin.kubernetes.domain.service;
 
-import static com.scalar.admin.kubernetes.domain.service.PauseService.*;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.GET_TARGET_AFTER_PAUSE_ERROR_MESSAGE;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.MAX_UNPAUSE_RETRY_COUNT;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.PAUSE_ERROR_MESSAGE;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.STATUS_CHECK_ERROR_MESSAGE;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.STATUS_UNMATCHED_ERROR_MESSAGE;
+import static com.scalar.admin.kubernetes.domain.service.PauseService.UNPAUSE_ERROR_MESSAGE;
 import static java.time.temporal.ChronoUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
@@ -85,6 +103,45 @@ class PauseServiceTest {
       assertEquals(actual.endTime(), expected.endTime());
 
       mockedTime.close();
+    }
+
+    @Test
+    void pause_NullTargetBeforePause_ShouldThrowNullPointerException() {
+      // Arrange
+      PauseService service = new PauseService();
+
+      // Act & Assert
+      NullPointerException thrown =
+          assertThrows(
+              NullPointerException.class,
+              () -> service.pause(null, () -> targetAfterPause, client, 1000, null));
+      assertEquals("targetBeforePause is required", thrown.getMessage());
+    }
+
+    @Test
+    void pause_NullTargetAfterPauseSupplier_ShouldThrowNullPointerException() {
+      // Arrange
+      PauseService service = new PauseService();
+
+      // Act & Assert
+      NullPointerException thrown =
+          assertThrows(
+              NullPointerException.class,
+              () -> service.pause(targetBeforePause, null, client, 1000, null));
+      assertEquals("targetAfterPauseSupplier is required", thrown.getMessage());
+    }
+
+    @Test
+    void pause_NullClient_ShouldThrowNullPointerException() {
+      // Arrange
+      PauseService service = new PauseService();
+
+      // Act & Assert
+      NullPointerException thrown =
+          assertThrows(
+              NullPointerException.class,
+              () -> service.pause(targetBeforePause, () -> targetAfterPause, null, 1000, null));
+      assertEquals("client is required", thrown.getMessage());
     }
 
     @Test

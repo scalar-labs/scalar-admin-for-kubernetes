@@ -12,6 +12,7 @@ import com.scalar.admin.kubernetes.domain.exception.UnpauseFailedException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseDuration;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -85,6 +86,9 @@ public class PauseService {
       int pauseDuration,
       @Nullable Long maxPauseWaitTime)
       throws PauserException {
+    Objects.requireNonNull(targetBeforePause, "targetBeforePause is required");
+    Objects.requireNonNull(targetAfterPauseSupplier, "targetAfterPauseSupplier is required");
+    Objects.requireNonNull(client, "client is required");
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(
           "pauseDuration is required to be greater than 0 millisecond.");
