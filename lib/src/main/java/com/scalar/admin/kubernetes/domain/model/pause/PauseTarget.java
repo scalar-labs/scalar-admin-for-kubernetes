@@ -29,6 +29,15 @@ public record PauseTarget(List<V1Pod> pods, V1Deployment deployment, int adminPo
    * @param adminPort the admin port number used for pause operations
    */
   public PauseTarget {
+    if (pods == null) {
+      throw new IllegalArgumentException("pods must not be null");
+    }
+    if (deployment == null) {
+      throw new IllegalArgumentException("deployment must not be null");
+    }
+    if (adminPort < 1) {
+      throw new IllegalArgumentException("adminPort must be greater than 0");
+    }
     pods = ImmutableList.copyOf(pods);
   }
 

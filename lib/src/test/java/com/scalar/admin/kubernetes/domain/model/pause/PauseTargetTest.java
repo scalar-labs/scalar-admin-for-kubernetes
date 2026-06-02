@@ -1,6 +1,7 @@
 package com.scalar.admin.kubernetes.domain.model.pause;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Deployment;
@@ -12,8 +13,90 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class PauseTargetTest {
+
+  @Nested
+  @DisplayName("Constructor")
+  class Constructor {
+
+    @Nested
+    @DisplayName("when given valid parameters")
+    class WhenGivenValidParameters {
+
+      @Test
+      @DisplayName("creates PauseTarget successfully")
+      void createsPauseTargetSuccessfully() {
+        // Arrange
+        V1Pod pod = mockPod("pod", "podResourceVersion", 1);
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+
+        // Act
+        PauseTarget target = new PauseTarget(Arrays.asList(pod), deployment, 8080);
+
+        // Assert
+        assertThat(target).isNotNull();
+        assertThat(target.pods()).containsExactly(pod);
+        assertThat(target.deployment()).isEqualTo(deployment);
+        assertThat(target.adminPort()).isEqualTo(8080);
+      }
+    }
+
+    @Nested
+    @DisplayName("when pods is null")
+    class WhenPodsIsNull {
+
+      @Test
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException() {
+        // Arrange
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+
+        // Act & Assert
+        assertThatThrownBy(() -> new PauseTarget(null, deployment, 8080))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pods must not be null");
+      }
+    }
+
+    @Nested
+    @DisplayName("when deployment is null")
+    class WhenDeploymentIsNull {
+
+      @Test
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException() {
+        // Arrange
+        V1Pod pod = mockPod("pod", "podResourceVersion", 1);
+
+        // Act & Assert
+        assertThatThrownBy(() -> new PauseTarget(Arrays.asList(pod), null, 8080))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("deployment must not be null");
+      }
+    }
+
+    @Nested
+    @DisplayName("when adminPort is invalid")
+    class WhenAdminPortIsInvalid {
+
+      @ParameterizedTest
+      @ValueSource(ints = {0, -1, -100})
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException(int invalidPort) {
+        // Arrange
+        V1Pod pod = mockPod("pod", "podResourceVersion", 1);
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+
+        // Act & Assert
+        assertThatThrownBy(() -> new PauseTarget(Arrays.asList(pod), deployment, invalidPort))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("adminPort must be greater than 0");
+      }
+    }
+  }
 
   @Nested
   @DisplayName("getStatus()")
