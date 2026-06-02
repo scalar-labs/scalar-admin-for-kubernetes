@@ -119,6 +119,81 @@ public class PauseTargetTest {
         assertThat(target1.toStatus()).isEqualTo(target2.toStatus());
       }
     }
+
+    @Nested
+    @DisplayName("when pod has null metadata")
+    class WhenPodHasNullMetadata {
+
+      @Test
+      @DisplayName("skips the pod")
+      void skipsThePod() {
+        // Arrange
+        V1Pod normalPod = mockPod("pod", "podResourceVersion", 1);
+        V1Pod nullMetadataPod = new V1Pod();
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+        PauseTarget target =
+            new PauseTarget(Arrays.asList(normalPod, nullMetadataPod), deployment, 8080);
+
+        // Act
+        PauseTarget.Status status = target.toStatus();
+
+        // Assert
+        assertThat(status.podRestartCounts()).containsOnlyKeys("pod");
+        assertThat(status.podResourceVersions()).containsOnlyKeys("pod");
+      }
+    }
+
+    @Nested
+    @DisplayName("when pod has null status")
+    class WhenPodHasNullStatus {
+
+      @Test
+      @DisplayName("treats restart count as 0")
+      void treatsRestartCountAsZero() {
+        // Arrange
+        V1Pod pod = new V1Pod();
+        V1ObjectMeta metadata = new V1ObjectMeta();
+        metadata.setName("pod-no-status");
+        metadata.setResourceVersion("rv1");
+        pod.setMetadata(metadata);
+        // status is not set (null)
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+        PauseTarget target = new PauseTarget(Arrays.asList(pod), deployment, 8080);
+
+        // Act
+        PauseTarget.Status status = target.toStatus();
+
+        // Assert
+        assertThat(status.podRestartCounts()).containsEntry("pod-no-status", 0);
+      }
+    }
+
+    @Nested
+    @DisplayName("when pod has null container statuses")
+    class WhenPodHasNullContainerStatuses {
+
+      @Test
+      @DisplayName("treats restart count as 0")
+      void treatsRestartCountAsZero() {
+        // Arrange
+        V1Pod pod = new V1Pod();
+        V1ObjectMeta metadata = new V1ObjectMeta();
+        metadata.setName("pod-no-containers");
+        metadata.setResourceVersion("rv1");
+        pod.setMetadata(metadata);
+        V1PodStatus podStatus = new V1PodStatus();
+        // containerStatuses is not set (null)
+        pod.setStatus(podStatus);
+        V1Deployment deployment = mockDeployment("deployment", "deploymentResourceVersion");
+        PauseTarget target = new PauseTarget(Arrays.asList(pod), deployment, 8080);
+
+        // Act
+        PauseTarget.Status status = target.toStatus();
+
+        // Assert
+        assertThat(status.podRestartCounts()).containsEntry("pod-no-containers", 0);
+      }
+    }
   }
 
   @Nested
