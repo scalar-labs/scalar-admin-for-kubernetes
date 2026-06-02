@@ -132,5 +132,49 @@ class PauseRequestTest {
                 "pauseDuration must be greater than 0, but was: " + invalidPauseDuration);
       }
     }
+
+    @Nested
+    @DisplayName("when tlsEnabled is true but caRootCert is missing")
+    class WhenTlsEnabledButCaRootCertIsMissing {
+
+      @ParameterizedTest
+      @NullAndEmptySource
+      @ValueSource(strings = {"  ", "   "})
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException(String invalidCaRootCert) {
+        // Arrange & Act & Assert
+        assertThatThrownBy(
+                () ->
+                    new PauseRequest(
+                        "default", "my-release", 5000, null, true, invalidCaRootCert, "authority"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("caRootCert is required when tlsEnabled is true");
+      }
+    }
+
+    @Nested
+    @DisplayName("when tlsEnabled is true but overrideAuthority is missing")
+    class WhenTlsEnabledButOverrideAuthorityIsMissing {
+
+      @ParameterizedTest
+      @NullAndEmptySource
+      @ValueSource(strings = {"  ", "   "})
+      @DisplayName("throws IllegalArgumentException")
+      void throwsIllegalArgumentException(String invalidOverrideAuthority) {
+        // Arrange & Act & Assert
+        assertThatThrownBy(
+                () ->
+                    new PauseRequest(
+                        "default",
+                        "my-release",
+                        5000,
+                        null,
+                        true,
+                        "cert-content",
+                        invalidOverrideAuthority))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("overrideAuthority is required when tlsEnabled is true");
+      }
+    }
   }
 }

@@ -42,5 +42,14 @@ public record PauseRequest(
       throw new IllegalArgumentException(
           "pauseDuration must be greater than 0, but was: " + pauseDuration);
     }
+    if (tlsEnabled) {
+      if (caRootCert == null || caRootCert.isBlank()) {
+        throw new IllegalArgumentException("caRootCert is required when tlsEnabled is true");
+      }
+      if (overrideAuthority == null || overrideAuthority.isBlank()) {
+        throw new IllegalArgumentException(
+            "overrideAuthority is required when tlsEnabled is true");
+      }
+    }
   }
 }
