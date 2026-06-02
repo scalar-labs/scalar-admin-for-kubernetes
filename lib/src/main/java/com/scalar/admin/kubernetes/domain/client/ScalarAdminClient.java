@@ -1,6 +1,5 @@
 package com.scalar.admin.kubernetes.domain.client;
 
-import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import javax.annotation.Nullable;
 
 /**
