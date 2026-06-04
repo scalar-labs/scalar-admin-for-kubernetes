@@ -3,7 +3,7 @@ auditor:
     repository: "ghcr.io/scalar-labs/scalardl-auditor"
   auditorProperties: |
     scalar.db.storage=jdbc
-    scalar.db.contact_points=jdbc:sqlite:/tmp/sqlite.db?busy_timeout=10000
+    scalar.db.contact_points=jdbc:sqlite:/sqlite/tmp.db?busy_timeout=10000
     scalar.dl.auditor.authentication.method=hmac
     scalar.dl.auditor.authentication.hmac.cipher_key=dummy-cipher-key
     scalar.dl.auditor.servers.authentication.hmac.secret_key=dummy-secret-key
@@ -11,6 +11,13 @@ auditor:
     - name: reg-docker-secrets
   authentication:
     method: "hmac"
+  extraVolumes:
+    - name: sqlite
+      persistentVolumeClaim:
+        claimName: sqlite
+  extraVolumeMounts:
+    - name: sqlite
+      mountPath: /sqlite
 
 envoy:
   enabled: false
