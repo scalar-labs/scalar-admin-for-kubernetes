@@ -43,7 +43,7 @@ class PauseApplicationServiceTest {
     }
 
     @Test
-    void constructor_WithNullRepository_ThrowIllegalArgumentException() {
+    void constructor_WithNullKubernetesClient_ThrowIllegalArgumentException() {
       // Act & Assert
       IllegalArgumentException thrown =
           assertThrows(
