@@ -82,9 +82,6 @@ public record PauseTarget(List<V1Pod> pods, V1Deployment deployment, int adminPo
 
     String deploymentResourceVersion =
         deployment.getMetadata() != null ? deployment.getMetadata().getResourceVersion() : null;
-    if (deploymentResourceVersion == null) {
-      logger.warn("Deployment has null metadata; resource version will be null.");
-    }
 
     return new Status(podRestartCounts, podResourceVersions, deploymentResourceVersion);
   }

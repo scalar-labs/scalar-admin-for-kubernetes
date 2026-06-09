@@ -19,10 +19,10 @@ public record TlsConfig(String caRootCert, String overrideAuthority) {
    * @throws IllegalArgumentException if either parameter is null
    */
   public TlsConfig {
-    if (caRootCert == null) {
+    if (caRootCert == null || caRootCert.isBlank()) {
       throw new IllegalArgumentException("caRootCert is required for TLS configuration");
     }
-    if (overrideAuthority == null) {
+    if (overrideAuthority == null || overrideAuthority.isBlank()) {
       throw new IllegalArgumentException("overrideAuthority is required for TLS configuration");
     }
   }
