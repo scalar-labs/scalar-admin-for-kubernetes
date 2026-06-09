@@ -12,7 +12,7 @@ import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.pause.TlsConfig;
 import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
-import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
+import com.scalar.admin.kubernetes.domain.client.ScalarAdminClientFactory;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

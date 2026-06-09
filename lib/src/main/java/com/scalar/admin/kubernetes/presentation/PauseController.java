@@ -7,7 +7,7 @@ import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
 import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.infrastructure.client.KubernetesClientImpl;
-import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactory;
+import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactoryImpl;
 import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -39,7 +39,7 @@ public class PauseController {
 
     KubernetesClient kubernetesClient =
         new KubernetesClientImpl(new CoreV1Api(), new AppsV1Api());
-    ScalarAdminClientFactory clientFactory = new ScalarAdminClientFactory();
+    ScalarAdminClientFactoryImpl clientFactory = new ScalarAdminClientFactoryImpl();
     PauseService pauseService = new PauseService();
 
     this.applicationService = new PauseApplicationService(kubernetesClient, clientFactory, pauseService);
