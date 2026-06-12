@@ -7,8 +7,6 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Represents a pause target in the Kubernetes cluster.
@@ -22,8 +20,6 @@ import org.slf4j.LoggerFactory;
  * @param adminPort the admin port number used for pause operations
  */
 public record PauseTarget(List<V1Pod> pods, V1Deployment deployment, int adminPort) {
-
-  private static final Logger logger = LoggerFactory.getLogger(PauseTarget.class);
 
   /**
    * Compact constructor with immutability enforcement.
@@ -59,29 +55,16 @@ public record PauseTarget(List<V1Pod> pods, V1Deployment deployment, int adminPo
     Map<String, String> podResourceVersions = new HashMap<>();
 
     for (V1Pod pod : pods) {
-      if (pod.getMetadata() == null || pod.getMetadata().getName() == null) {
-        logger.warn("Skipping pod with null metadata or name during status check.");
-        continue;
-      }
       String podName = pod.getMetadata().getName();
-      int restartCount = 0;
-      if (pod.getStatus() != null && pod.getStatus().getContainerStatuses() != null) {
-        restartCount =
-            pod.getStatus().getContainerStatuses().stream()
-                .mapToInt(c -> c.getRestartCount() != null ? c.getRestartCount() : 0)
-                .sum();
-      } else {
-        logger.info(
-            "Pod {} has no status or container statuses; treating restart count as 0.", podName);
-      }
+      Integer restartCount =
+          pod.getStatus().getContainerStatuses().stream().mapToInt(c -> c.getRestartCount()).sum();
       String resourceVersion = pod.getMetadata().getResourceVersion();
 
       podRestartCounts.put(podName, restartCount);
       podResourceVersions.put(podName, resourceVersion);
     }
 
-    String deploymentResourceVersion =
-        deployment.getMetadata() != null ? deployment.getMetadata().getResourceVersion() : null;
+    String deploymentResourceVersion = deployment.getMetadata().getResourceVersion();
 
     return new Status(podRestartCounts, podResourceVersions, deploymentResourceVersion);
   }
