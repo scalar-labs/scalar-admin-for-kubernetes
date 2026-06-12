@@ -84,7 +84,7 @@ public class KubernetesClientImpl implements KubernetesClient {
           String.format(
               "Kubernetes listNamespacedPod API error with code %d and body %s.",
               e.getCode(), e.getResponseBody());
-      throw new PauserException(m);
+      throw new PauserException(m, e);
     }
 
     List<V1Pod> pods = podList.getItems();
