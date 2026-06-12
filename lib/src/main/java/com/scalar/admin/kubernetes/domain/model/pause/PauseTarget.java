@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1Pod;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Represents a pause target in the Kubernetes cluster.
@@ -14,6 +16,11 @@ import java.util.Map;
  * <p>This aggregate root encapsulates all information about the target of a pause operation,
  * including the pods, deployment, and admin port. It provides methods to extract status information
  * for comparison purposes.
+ *
+ * <p>Note: This record deliberately uses Kubernetes SDK types (V1Pod, V1Deployment) rather than
+ * custom domain models. Since this project is a Kubernetes-specific tool, the SDK types are treated
+ * as part of the domain vocabulary. A future refactoring may introduce domain-specific models (e.g.
+ * PausePod) to decouple from the SDK and enable validation at construction time.
  *
  * @param pods the list of pods that are part of this pause target
  * @param deployment the deployment associated with this pause target
@@ -67,6 +74,27 @@ public record PauseTarget(List<V1Pod> pods, V1Deployment deployment, int adminPo
     String deploymentResourceVersion = deployment.getMetadata().getResourceVersion();
 
     return new Status(podRestartCounts, podResourceVersions, deploymentResourceVersion);
+  }
+
+  /**
+   * Builds a list of socket addresses from the pods' IPs and the admin port.
+   *
+   * <p>Pods without a reachable IP (null status or null pod IP) are filtered out. If no pods have a
+   * reachable IP, an {@link IllegalStateException} is thrown.
+   *
+   * @return list of socket addresses for communicating with the target pods
+   * @throws IllegalStateException if no target pods have a reachable IP
+   */
+  public List<InetSocketAddress> toAddressList() {
+    List<InetSocketAddress> addresses =
+        pods.stream()
+            .filter(pod -> pod.getStatus() != null && pod.getStatus().getPodIP() != null)
+            .map(pod -> new InetSocketAddress(pod.getStatus().getPodIP(), adminPort))
+            .collect(Collectors.toList());
+    if (addresses.isEmpty()) {
+      throw new IllegalStateException("No target pods have a reachable IP.");
+    }
+    return addresses;
   }
 
   /**

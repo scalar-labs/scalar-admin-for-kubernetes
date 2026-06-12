@@ -4,9 +4,6 @@ import com.scalar.admin.TlsRequestCoordinator;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
 import com.scalar.admin.kubernetes.domain.model.pause.TlsConfig;
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -36,7 +33,7 @@ public class TlsScalarAdminClientImpl implements ScalarAdminClient {
     }
     this.requestCoordinator =
         new TlsRequestCoordinator(
-            buildAddressList(target), tlsConfig.caRootCert(), tlsConfig.overrideAuthority());
+            target.toAddressList(), tlsConfig.caRootCert(), tlsConfig.overrideAuthority());
   }
 
   @Override
@@ -47,17 +44,5 @@ public class TlsScalarAdminClientImpl implements ScalarAdminClient {
   @Override
   public void unpause() {
     requestCoordinator.unpause();
-  }
-
-  /**
-   * Builds a list of InetSocketAddress from the pause target.
-   *
-   * @param target the pause target
-   * @return list of addresses (pod IP + admin port)
-   */
-  private List<InetSocketAddress> buildAddressList(PauseTarget target) {
-    return target.pods().stream()
-        .map(pod -> new InetSocketAddress(pod.getStatus().getPodIP(), target.adminPort()))
-        .collect(Collectors.toList());
   }
 }

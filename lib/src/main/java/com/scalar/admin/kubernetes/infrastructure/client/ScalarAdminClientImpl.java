@@ -3,9 +3,6 @@ package com.scalar.admin.kubernetes.infrastructure.client;
 import com.scalar.admin.RequestCoordinator;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClient;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseTarget;
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -29,7 +26,7 @@ public class ScalarAdminClientImpl implements ScalarAdminClient {
     if (target == null) {
       throw new IllegalArgumentException("PauseTarget must not be null");
     }
-    this.requestCoordinator = new RequestCoordinator(buildAddressList(target));
+    this.requestCoordinator = new RequestCoordinator(target.toAddressList());
   }
 
   @Override
@@ -40,17 +37,5 @@ public class ScalarAdminClientImpl implements ScalarAdminClient {
   @Override
   public void unpause() {
     requestCoordinator.unpause();
-  }
-
-  /**
-   * Builds a list of InetSocketAddress from the pause target.
-   *
-   * @param target the pause target
-   * @return list of addresses (pod IP + admin port)
-   */
-  private List<InetSocketAddress> buildAddressList(PauseTarget target) {
-    return target.pods().stream()
-        .map(pod -> new InetSocketAddress(pod.getStatus().getPodIP(), target.adminPort()))
-        .collect(Collectors.toList());
   }
 }
