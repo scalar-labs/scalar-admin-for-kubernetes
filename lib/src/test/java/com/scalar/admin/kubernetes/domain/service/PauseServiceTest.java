@@ -498,6 +498,85 @@ class PauseServiceTest {
       assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
       assertEquals(PauseFailedException.class, thrown.getSuppressed()[0].getClass());
     }
+
+    @Test
+    void pause_WhenUnpauseFailedAndTargetPodStatusChanged_ShouldThrowUnpauseFailedException()
+        throws PauserException {
+      // Arrange
+      int pauseDuration = 1;
+      Instant startTime = Instant.now().minus(5, SECONDS);
+      Instant endTime = Instant.now().plus(5, SECONDS);
+
+      PauseService service = spy(new PauseService());
+      PauseDuration pausedDuration = new PauseDuration(startTime, endTime);
+
+      doReturn(pausedDuration).when(service).pauseInternal(any(), anyInt(), anyLong());
+      doThrow(RuntimeException.class)
+          .when(service)
+          .unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT);
+      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
+          .when(service)
+          .targetStatusEquals(any(), any());
+
+      // Act & Assert
+      UnpauseFailedException thrown =
+          assertThrows(
+              UnpauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
+      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
+      assertEquals(StatusUnmatchedException.class, thrown.getSuppressed()[0].getClass());
+    }
+
+    @Test
+    void pause_WhenPauseAndUnpauseAndTargetPodStatusChanged_ShouldThrowUnpauseFailedException()
+        throws PauserException {
+      // Arrange
+      int pauseDuration = 1;
+      PauseService service = spy(new PauseService());
+      doThrow(RuntimeException.class).when(service).pauseInternal(any(), anyInt(), any());
+      doThrow(RuntimeException.class)
+          .when(service)
+          .unpauseWithRetry(client, MAX_UNPAUSE_RETRY_COUNT);
+      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
+          .when(service)
+          .targetStatusEquals(any(), any());
+
+      // Act & Assert
+      UnpauseFailedException thrown =
+          assertThrows(
+              UnpauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
+      assertEquals(UNPAUSE_ERROR_MESSAGE, thrown.getMessage());
+      assertEquals(PauseFailedException.class, thrown.getSuppressed()[0].getClass());
+      assertEquals(StatusUnmatchedException.class, thrown.getSuppressed()[1].getClass());
+    }
+
+    @Test
+    void pause_WhenPauseFailedAndTargetPodStatusChanged_ShouldThrowPauseFailedException()
+        throws PauserException {
+      // Arrange
+      int pauseDuration = 1;
+      PauseService service = spy(new PauseService());
+      doThrow(RuntimeException.class).when(service).pauseInternal(any(), anyInt(), any());
+      doNothing().when(service).unpauseWithRetry(any(), anyInt());
+      doReturn(new StatusUnmatchedException(STATUS_UNMATCHED_ERROR_MESSAGE))
+          .when(service)
+          .targetStatusEquals(any(), any());
+
+      // Act & Assert
+      PauseFailedException thrown =
+          assertThrows(
+              PauseFailedException.class,
+              () ->
+                  service.pause(
+                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
+      assertEquals(PAUSE_ERROR_MESSAGE, thrown.getMessage());
+      assertEquals(StatusUnmatchedException.class, thrown.getSuppressed()[0].getClass());
+    }
   }
 
   @Nested
