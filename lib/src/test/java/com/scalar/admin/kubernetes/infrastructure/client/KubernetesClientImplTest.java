@@ -162,8 +162,8 @@ public class KubernetesClientImplTest {
 
     V1PodList podList = new V1PodList();
 
-    V1Pod pod1 = mockPod("pod1", "1", 0, "scalardb");
-    V1Pod pod2 = mockPod("pod2", "1", 0, "scalardb-cluster");
+    V1Pod pod1 = mockPod("pod1", "1", 0, "scalardb-cluster");
+    V1Pod pod2 = mockPod("pod2", "1", 0, "ledger");
 
     List<V1Pod> pods = Arrays.asList(pod1, pod2);
     podList.setItems(pods);
@@ -245,7 +245,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -279,7 +279,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -309,7 +309,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -339,7 +339,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -372,7 +372,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -411,7 +411,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -437,7 +437,7 @@ public class KubernetesClientImplTest {
 
     V1ObjectMeta metadata1 = new V1ObjectMeta();
     V1ObjectMeta metadata2 = new V1ObjectMeta();
-    metadata1.setName("scalardb-headless");
+    metadata1.setName("scalardb-cluster-headless");
     metadata2.setName("scalardl-headless");
 
     V1Service service1 = new V1Service();
@@ -454,7 +454,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -478,7 +478,7 @@ public class KubernetesClientImplTest {
     String helmReleaseName = "helmReleaseName";
 
     V1ObjectMeta metadata = new V1ObjectMeta();
-    metadata.setName("scalardb-headless");
+    metadata.setName("scalardb-cluster-headless");
 
     V1ServiceSpec serviceSpec = new V1ServiceSpec();
     serviceSpec.setPorts(new ArrayList<>());
@@ -496,7 +496,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -521,10 +521,10 @@ public class KubernetesClientImplTest {
     String helmReleaseName = "helmReleaseName";
 
     V1ObjectMeta metadata = new V1ObjectMeta();
-    metadata.setName("scalardb-headless");
+    metadata.setName("scalardb-cluster-headless");
 
     V1ServicePort servicePort = new V1ServicePort();
-    servicePort.setName("scalardb");
+    servicePort.setName("scalardb-cluster");
     servicePort.setTargetPort(new IntOrString("some-port"));
 
     V1ServiceSpec serviceSpec = new V1ServiceSpec();
@@ -543,7 +543,7 @@ public class KubernetesClientImplTest {
             null,
             null,
             null,
-            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb",
+            "app.kubernetes.io/instance=helmReleaseName,app.kubernetes.io/app=scalardb-cluster",
             null,
             null,
             null,
@@ -585,7 +585,7 @@ public class KubernetesClientImplTest {
 
   private void mockCoreV1Api() throws ApiException {
     List<V1Pod> pods =
-        Arrays.asList(mockPod("pod1", "1", 0, "scalardb"), mockPod("pod2", "2", 0, "scalardb"));
+        Arrays.asList(mockPod("pod1", "1", 0, "scalardb-cluster"), mockPod("pod2", "2", 0, "scalardb-cluster"));
     V1PodList podList = new V1PodList();
     podList.setItems(pods);
 
@@ -593,7 +593,7 @@ public class KubernetesClientImplTest {
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(podList);
 
-    List<V1Service> services = Arrays.asList(mockService("scalardb", "scalardb", 1));
+    List<V1Service> services = Arrays.asList(mockService("scalardb-cluster", "scalardb-cluster", 1));
     V1ServiceList serviceList = new V1ServiceList();
     serviceList.setItems(services);
 
@@ -604,7 +604,7 @@ public class KubernetesClientImplTest {
 
   private void mockAppsV1Api() throws ApiException {
     V1DeploymentList deploymentList = new V1DeploymentList();
-    List<V1Deployment> deployments = Arrays.asList(mockDeployment("deployment1", "1", "scalardb"));
+    List<V1Deployment> deployments = Arrays.asList(mockDeployment("deployment1", "1", "scalardb-cluster"));
     deploymentList.setItems(deployments);
 
     when(appsV1Api.listNamespacedDeployment(

@@ -22,19 +22,19 @@ public class ProductTest {
         // Act & Assert
         assertThat(
                 new Product[] {
-                  Product.fromAppLabelValue("scalardb"),
                   Product.fromAppLabelValue("scalardb-cluster"),
                   Product.fromAppLabelValue("ledger"),
                   Product.fromAppLabelValue("auditor"),
+                  Product.fromAppLabelValue("scalardb"),
                   Product.fromAppLabelValue("unknown"),
                   Product.fromAppLabelValue("foo"),
                   Product.fromAppLabelValue("bar"),
                 })
             .containsExactly(
-                Product.SCALARDB_SERVER,
                 Product.SCALARDB_CLUSTER,
                 Product.SCALARDL_LEDGER,
                 Product.SCALARDL_AUDITOR,
+                Product.UNKNOWN,
                 Product.UNKNOWN,
                 Product.UNKNOWN,
                 Product.UNKNOWN);
@@ -56,7 +56,6 @@ public class ProductTest {
         // Act & Assert
         assertThat(Product.values())
             .containsExactly(
-                Product.SCALARDB_SERVER,
                 Product.SCALARDB_CLUSTER,
                 Product.SCALARDL_LEDGER,
                 Product.SCALARDL_AUDITOR,
@@ -79,13 +78,12 @@ public class ProductTest {
         // Act & Assert
         assertThat(
                 new String[] {
-                  Product.SCALARDB_SERVER.getAppLabelValue(),
                   Product.SCALARDB_CLUSTER.getAppLabelValue(),
                   Product.SCALARDL_LEDGER.getAppLabelValue(),
                   Product.SCALARDL_AUDITOR.getAppLabelValue(),
                   Product.UNKNOWN.getAppLabelValue()
                 })
-            .containsExactly("scalardb", "scalardb-cluster", "ledger", "auditor", "");
+            .containsExactly("scalardb-cluster", "ledger", "auditor", "");
       }
     }
   }
@@ -104,14 +102,12 @@ public class ProductTest {
         // Act & Assert
         assertThat(
                 new String[] {
-                  Product.SCALARDB_SERVER.getAdminPortName(),
                   Product.SCALARDB_CLUSTER.getAdminPortName(),
                   Product.SCALARDL_LEDGER.getAdminPortName(),
                   Product.SCALARDL_AUDITOR.getAdminPortName(),
                   Product.UNKNOWN.getAdminPortName()
                 })
-            .containsExactly(
-                "scalardb", "scalardb-cluster", "scalardl-admin", "scalardl-auditor-admin", "");
+            .containsExactly("scalardb-cluster", "scalardl-admin", "scalardl-auditor-admin", "");
       }
     }
   }
