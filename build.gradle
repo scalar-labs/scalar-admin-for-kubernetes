@@ -21,6 +21,7 @@ subprojects {
         assertjVersion = '3.27.7'
         jacksonVersion = '2.15.2'
         spotbugsVersion = '4.7.3'
+        guiceVersion = '5.1.0'
     }
 
     repositories {

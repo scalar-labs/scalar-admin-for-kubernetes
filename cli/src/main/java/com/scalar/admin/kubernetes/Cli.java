@@ -2,7 +2,10 @@ package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
+import com.scalar.admin.kubernetes.infrastructure.module.PauseModule;
 import com.scalar.admin.kubernetes.presentation.PauseController;
 import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
 import java.io.File;
@@ -112,7 +115,8 @@ class Cli implements Callable<Integer> {
 
     try {
       // Create controller
-      PauseController controller = new PauseController();
+      Injector injector = Guice.createInjector(new PauseModule());
+      PauseController controller = injector.getInstance(PauseController.class);
 
       // Build PauseRequest
       PauseRequest request =

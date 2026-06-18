@@ -4,45 +4,30 @@ import com.scalar.admin.kubernetes.application.PauseApplicationService;
 import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
 import com.scalar.admin.kubernetes.domain.model.pause.PauseByHelmReleaseCommand;
-import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
-import com.scalar.admin.kubernetes.domain.service.PauseService;
-import com.scalar.admin.kubernetes.infrastructure.client.KubernetesClientImpl;
-import com.scalar.admin.kubernetes.infrastructure.client.ScalarAdminClientFactoryImpl;
 import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
-import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.AppsV1Api;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.util.Config;
-import java.io.IOException;
+import javax.inject.Inject;
 
 /**
  * Controller for pause operations.
  *
- * <p>This controller handles the presentation layer concerns, including initializing the
- * application service and its dependencies, and coordinating the execution of pause commands.
+ * <p>This controller handles the presentation layer concerns, coordinating the execution of pause
+ * commands by delegating to the application service.
  */
 public class PauseController {
 
   private final PauseApplicationService applicationService;
 
   /**
-   * Creates a PauseController with initialized dependencies.
+   * Creates a PauseController with the given application service.
    *
-   * @throws PauserException when the Kubernetes client fails to be initialized
+   * @param applicationService the application service for executing pause operations
    */
-  public PauseController() throws PauserException {
-    try {
-      Configuration.setDefaultApiClient(Config.defaultClient());
-    } catch (IOException e) {
-      throw new PauserException("Failed to set default Kubernetes client.", e);
+  @Inject
+  public PauseController(PauseApplicationService applicationService) {
+    if (applicationService == null) {
+      throw new IllegalArgumentException("applicationService is required");
     }
-
-    KubernetesClient kubernetesClient =
-        new KubernetesClientImpl(new CoreV1Api(), new AppsV1Api());
-    ScalarAdminClientFactoryImpl clientFactory = new ScalarAdminClientFactoryImpl();
-    PauseService pauseService = new PauseService();
-
-    this.applicationService = new PauseApplicationService(kubernetesClient, clientFactory, pauseService);
+    this.applicationService = applicationService;
   }
 
   /**

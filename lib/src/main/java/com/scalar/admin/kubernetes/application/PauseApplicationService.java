@@ -11,6 +11,7 @@ import com.scalar.admin.kubernetes.domain.client.KubernetesClient;
 import com.scalar.admin.kubernetes.domain.service.PauseService;
 import com.scalar.admin.kubernetes.domain.client.ScalarAdminClientFactory;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.inject.Inject;
 
 /**
  * Application service for pause operations.
@@ -18,7 +19,7 @@ import javax.annotation.concurrent.NotThreadSafe;
  * <p>This service coordinates the pause operation by:
  *
  * <ol>
- *   <li>Retrieving the pause target from the repository based on the command
+ *   <li>Resolving the pause target from Kubernetes based on the command
  *   <li>Creating the appropriate Scalar Admin client (with or without TLS)
  *   <li>Delegating to the domain service for business logic execution
  * </ol>
@@ -39,6 +40,7 @@ public class PauseApplicationService {
    * @param clientFactory factory for creating Scalar Admin clients
    * @param pauseService domain service for pause business logic
    */
+  @Inject
   public PauseApplicationService(
       KubernetesClient kubernetesClient,
       ScalarAdminClientFactory clientFactory,
