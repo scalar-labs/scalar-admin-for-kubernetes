@@ -75,13 +75,9 @@ public class PauseApplicationService {
   private PauseDurationDto executePauseByHelmRelease(PauseByHelmReleaseCommand command)
       throws PauserException {
     // Get the pause target before pause
-    PauseTarget targetBeforePause;
-    try {
-      targetBeforePause =
-          kubernetesClient.resolvePauseTargetByHelmRelease(command.namespace(), command.helmReleaseName());
-    } catch (Exception e) {
-      throw new PauserException("Failed to find the target pods to pause.", e);
-    }
+    PauseTarget targetBeforePause =
+        kubernetesClient.resolvePauseTargetByHelmRelease(
+            command.namespace(), command.helmReleaseName());
 
     // Create the appropriate client (with or without TLS)
     ScalarAdminClient client;

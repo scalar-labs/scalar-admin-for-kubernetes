@@ -162,12 +162,12 @@ class PauseApplicationServiceTest {
           PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
 
       when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName))
-          .thenThrow(new RuntimeException("Repository error"));
+          .thenThrow(new PauserException("Can not find any target pods."));
 
       // Act & Assert
       PauserException thrown =
           assertThrows(PauserException.class, () -> applicationService.execute(command));
-      assertEquals("Failed to find the target pods to pause.", thrown.getMessage());
+      assertEquals("Can not find any target pods.", thrown.getMessage());
     }
 
     @Test
