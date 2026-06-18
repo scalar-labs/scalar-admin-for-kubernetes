@@ -78,23 +78,23 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--ca-root-cert-path"},
       description =
-          "A path to a root certificate file for verifying the server's certificate when wire"
-              + " encryption is enabled.")
+          "A path to a root certificate file for verifying the server's certificate."
+              + " Either this or --ca-root-cert-pem is required when --tls is enabled.")
   private String caRootCertPath;
 
   @Option(
       names = {"--ca-root-cert-pem"},
       description =
-          "A PEM format string of a root certificate for verifying the server's certificate when"
-              + " wire encryption is enabled. This option is prioritized when --ca-root-cert-path"
-              + " is specified.")
+          "A PEM format string of a root certificate for verifying the server's certificate."
+              + " Either this or --ca-root-cert-path is required when --tls is enabled."
+              + " This option takes precedence over --ca-root-cert-path.")
   private String caRootCertPem;
 
   @Option(
       names = {"--override-authority"},
       description =
-          "The value to be used as the expected authority in the server's certificate when wire"
-              + " encryption is enabled.")
+          "The value to be used as the expected authority in the server's certificate."
+              + " Required when --tls is enabled.")
   private String overrideAuthority;
 
   @Option(
