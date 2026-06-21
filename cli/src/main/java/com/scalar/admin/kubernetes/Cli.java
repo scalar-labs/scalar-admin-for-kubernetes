@@ -2,6 +2,12 @@ package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
+import com.scalar.admin.kubernetes.infrastructure.module.PauseModule;
+import com.scalar.admin.kubernetes.presentation.PauseController;
+import com.scalar.admin.kubernetes.presentation.dto.PauseRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -72,23 +78,23 @@ class Cli implements Callable<Integer> {
   @Option(
       names = {"--ca-root-cert-path"},
       description =
-          "A path to a root certificate file for verifying the server's certificate when wire"
-              + " encryption is enabled.")
+          "A path to a root certificate file for verifying the server's certificate."
+              + " Either this or --ca-root-cert-pem is required when --tls is enabled.")
   private String caRootCertPath;
 
   @Option(
       names = {"--ca-root-cert-pem"},
       description =
-          "A PEM format string of a root certificate for verifying the server's certificate when"
-              + " wire encryption is enabled. This option is prioritized when --ca-root-cert-path"
-              + " is specified.")
+          "A PEM format string of a root certificate for verifying the server's certificate."
+              + " Either this or --ca-root-cert-path is required when --tls is enabled."
+              + " This option takes precedence over --ca-root-cert-path.")
   private String caRootCertPem;
 
   @Option(
       names = {"--override-authority"},
       description =
-          "The value to be used as the expected authority in the server's certificate when wire"
-              + " encryption is enabled.")
+          "The value to be used as the expected authority in the server's certificate."
+              + " Required when --tls is enabled.")
   private String overrideAuthority;
 
   @Option(
@@ -108,14 +114,26 @@ class Cli implements Callable<Integer> {
     Result result = null;
 
     try {
-      Pauser pauser =
-          tlsEnabled
-              ? new TlsPauser(namespace, helmReleaseName, getCaRootCert(), overrideAuthority)
-              : new Pauser(namespace, helmReleaseName);
+      // Create controller
+      Injector injector = Guice.createInjector(new PauseModule());
+      PauseController controller = injector.getInstance(PauseController.class);
 
-      PausedDuration duration = pauser.pause(pauseDuration, maxPauseWaitTime);
+      // Build PauseRequest
+      PauseRequest request =
+          new PauseRequest(
+              namespace,
+              helmReleaseName,
+              pauseDuration,
+              maxPauseWaitTime,
+              tlsEnabled,
+              getCaRootCert(),
+              overrideAuthority);
 
-      result = new Result(namespace, helmReleaseName, duration, zoneId);
+      // Execute pause operation
+      PauseDurationDto durationDto = controller.pause(request);
+
+      // Build result
+      result = new Result(namespace, helmReleaseName, durationDto, zoneId);
       ObjectMapper mapper = new ObjectMapper();
       System.out.println(mapper.writeValueAsString(result));
     } catch (JsonProcessingException e) {

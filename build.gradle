@@ -18,8 +18,10 @@ subprojects {
         picocliVersion = '4.7.3'
         junitVersion = '5.9.3'
         mockitoVersion = '5.21.0'
+        assertjVersion = '3.27.7'
         jacksonVersion = '2.15.2'
         spotbugsVersion = '4.7.3'
+        guiceVersion = '5.1.0'
     }
 
     repositories {

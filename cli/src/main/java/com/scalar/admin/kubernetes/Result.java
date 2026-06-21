@@ -1,6 +1,8 @@
 package com.scalar.admin.kubernetes;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.scalar.admin.kubernetes.application.dto.PauseDurationDto;
+import java.time.Instant;
 import java.time.ZoneId;
 import javax.annotation.concurrent.Immutable;
 
@@ -26,14 +28,22 @@ class Result {
 
   public final String timezone;
 
-  Result(String namespace, String helmReleaseName, PausedDuration pausedDuration, ZoneId zoneId) {
+  Result(
+      String namespace, String helmReleaseName, PauseDurationDto pauseDurationDto, ZoneId zoneId) {
     this.namespace = namespace;
     this.helmReleaseName = helmReleaseName;
-    this.pauseStartTimestampMs = pausedDuration.getStartTime().toEpochMilli();
-    this.pauseEndTimestampMs = pausedDuration.getEndTime().toEpochMilli();
+    this.pauseStartTimestampMs = pauseDurationDto.startTimeEpochMilli();
+    this.pauseEndTimestampMs = pauseDurationDto.endTimeEpochMilli();
     this.pauseStartDateTime =
-        pausedDuration.getStartTime().atZone(zoneId).toLocalDateTime().toString();
-    this.pauseEndDateTime = pausedDuration.getEndTime().atZone(zoneId).toLocalDateTime().toString();
+        Instant.ofEpochMilli(pauseDurationDto.startTimeEpochMilli())
+            .atZone(zoneId)
+            .toLocalDateTime()
+            .toString();
+    this.pauseEndDateTime =
+        Instant.ofEpochMilli(pauseDurationDto.endTimeEpochMilli())
+            .atZone(zoneId)
+            .toLocalDateTime()
+            .toString();
     this.timezone = zoneId.toString();
   }
 }
