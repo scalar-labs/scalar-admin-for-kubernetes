@@ -98,6 +98,10 @@ public enum PodDiscoveryMode {
           throw new IllegalArgumentException(
               "adminPort is required when podDiscoveryMode is DEPLOYMENT");
         }
+        if (adminPort < 1 || adminPort > 65535) {
+          throw new IllegalArgumentException(
+              "adminPort must be between 1 and 65535 when podDiscoveryMode is DEPLOYMENT, but was: " + adminPort);
+        }
         if (helmReleaseName != null) {
           throw new IllegalArgumentException(
               "helmReleaseName cannot be used when podDiscoveryMode is DEPLOYMENT");

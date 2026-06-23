@@ -31,7 +31,7 @@ public record PauseByDeploymentNameCommand(
    *
    * @param namespace the Kubernetes namespace (required)
    * @param deploymentName the deployment name (required)
-   * @param adminPort the admin port number (must be 0-65535)
+   * @param adminPort the admin port number (must be 1-65535)
    * @param pauseDuration the pause duration in milliseconds (must be positive)
    * @param maxPauseWaitTime the maximum wait time (optional)
    * @param tlsConfig the TLS configuration (optional)
@@ -44,9 +44,9 @@ public record PauseByDeploymentNameCommand(
     if (deploymentName == null || deploymentName.isBlank()) {
       throw new IllegalArgumentException("deploymentName is required");
     }
-    if (adminPort < 0 || adminPort > 65535) {
+    if (adminPort < 1 || adminPort > 65535) {
       throw new IllegalArgumentException(
-          "adminPort must be between 0 and 65535, but was: " + adminPort);
+          "adminPort must be between 1 and 65535, but was: " + adminPort);
     }
     if (pauseDuration < 1) {
       throw new IllegalArgumentException(

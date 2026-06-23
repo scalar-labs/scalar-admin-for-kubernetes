@@ -234,6 +234,21 @@ class PodDiscoveryModeTest {
       }
 
       @Nested
+      @DisplayName("when adminPort is out-of-range")
+      class WhenAdminPortIsOutOfRange {
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1, -100, 65536, 70000})
+        @DisplayName("throws IllegalArgumentException")
+        void throwsIllegalArgumentException(int invalidPort) {
+            // Arrange & Act & Assert
+            assertThatThrownBy(
+                    () -> PodDiscoveryMode.DEPLOYMENT.validate(null, "my-deployment", invalidPort))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("adminPort must be between 1 and 65535 when podDiscoveryMode is DEPLOYMENT, but was: " + invalidPort);
+        }
+      }
+
+      @Nested
       @DisplayName("when helmReleaseName is specified")
       class WhenHelmReleaseNameIsSpecified {
 

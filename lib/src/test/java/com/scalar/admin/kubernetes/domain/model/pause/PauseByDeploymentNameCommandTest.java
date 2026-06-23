@@ -140,7 +140,7 @@ class PauseByDeploymentNameCommandTest {
     class WhenAdminPortIsInvalid {
 
       @ParameterizedTest
-      @ValueSource(ints = {-1, -100, 65536, 70000})
+      @ValueSource(ints = {0, -1, -100, 65536, 70000})
       @DisplayName("throws IllegalArgumentException for out-of-range port")
       void throwsIllegalArgumentExceptionForOutOfRangePort(int invalidPort) {
         // Arrange & Act & Assert
@@ -149,7 +149,7 @@ class PauseByDeploymentNameCommandTest {
                     PauseByDeploymentNameCommand.create(
                         "default", "my-deployment", invalidPort, 10000, null))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("adminPort must be between 0 and 65535, but was: " + invalidPort);
+            .hasMessage("adminPort must be between 1 and 65535, but was: " + invalidPort);
       }
     }
 
@@ -158,7 +158,7 @@ class PauseByDeploymentNameCommandTest {
     class WhenAdminPortIsValid {
 
       @ParameterizedTest
-      @ValueSource(ints = {0, 1, 80, 8080, 60054, 65535})
+      @ValueSource(ints = {1, 80, 8080, 60054, 65535})
       @DisplayName("creates command successfully for valid port")
       void createsCommandSuccessfullyForValidPort(int validPort) {
         // Arrange & Act & Assert
