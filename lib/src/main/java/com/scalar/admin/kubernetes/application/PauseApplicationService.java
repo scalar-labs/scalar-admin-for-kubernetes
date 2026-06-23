@@ -124,6 +124,8 @@ public class PauseApplicationService {
     PauseTarget targetBeforePause;
     try {
       targetBeforePause = targetSupplier.get();
+    } catch (PauserException e) {
+      throw e;
     } catch (Exception e) {
       throw new PauserException("Failed to find the target pods to pause.", e);
     }
