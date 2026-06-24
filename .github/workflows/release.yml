@@ -36,14 +36,12 @@ jobs:
 
       - name: Upload the package to Maven Central Repository
         run: |
-          echo "${{ secrets.SIGNING_SECRET_KEY_RING }}" | base64 -d > /tmp/secring.gpg
           ./gradlew publish \
             -PprojVersion="${{ steps.version.outputs.version }}" \
-            -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}" \
-            -P'signing.password'="${{ secrets.SIGNING_PASSWORD }}" \
-            -Psigning.secretKeyRingFile='/tmp/secring.gpg' \
-            -PossrhUsername="${{ secrets.OSSRH_USERNAMAE }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
+            -PsigningKey="${{ secrets.MAVEN_CENTRAL_GPG_SECRET_KEY }}" \
+            -PsigningPassword="${{ secrets.MAVEN_CENTRAL_GPG_PASSPHRASE }}" \
+            -PossrhUsername="${{ secrets.MAVEN_CENTRAL_USERNAME }}" \
+            -PossrhPassword="${{ secrets.MAVEN_CENTRAL_PASSWORD }}"
 
       - name: Build the shadow Jar
         run: ./gradlew shadowJar
