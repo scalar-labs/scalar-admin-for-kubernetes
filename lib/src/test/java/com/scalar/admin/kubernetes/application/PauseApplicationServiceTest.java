@@ -184,8 +184,8 @@ class PauseApplicationServiceTest {
       }
 
       @Test
-      @DisplayName("throws PauserException when kubernetesClient throws exception")
-      void throwsPauserExceptionWhenRepositoryThrowsException() throws PauserException {
+      @DisplayName("wraps RuntimeException from kubernetesClient in PauserException")
+      void wrapsRuntimeExceptionFromRepositoryInPauserException() throws PauserException {
         // Arrange
         String namespace = "test-ns";
         String helmReleaseName = "test-release";
@@ -200,6 +200,26 @@ class PauseApplicationServiceTest {
         assertThatThrownBy(() -> applicationService.execute(command))
             .isInstanceOf(PauserException.class)
             .hasMessage("Failed to find the target pods to pause.");
+      }
+
+      @Test
+      @DisplayName("propagates PauserException from kubernetesClient without wrapping")
+      void propagatesPauserExceptionFromRepositoryWithoutWrapping() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String helmReleaseName = "test-release";
+
+        PauseByHelmReleaseCommand command =
+            PauseByHelmReleaseCommand.create(namespace, helmReleaseName, 5000, 3000L);
+
+        PauserException original = new PauserException("Can not find any target pods.");
+        when(kubernetesClient.resolvePauseTargetByHelmRelease(namespace, helmReleaseName))
+            .thenThrow(original);
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isSameAs(original)
+            .hasMessage("Can not find any target pods.");
       }
 
       @Test
@@ -315,8 +335,8 @@ class PauseApplicationServiceTest {
       }
 
       @Test
-      @DisplayName("throws PauserException when kubernetesClient throws exception")
-      void throwsPauserExceptionWhenRepositoryThrowsException() throws PauserException {
+      @DisplayName("wraps RuntimeException from kubernetesClient in PauserException")
+      void wrapsRuntimeExceptionFromRepositoryInPauserException() throws PauserException {
         // Arrange
         String namespace = "test-ns";
         String deploymentName = "test-deployment";
@@ -332,6 +352,27 @@ class PauseApplicationServiceTest {
         assertThatThrownBy(() -> applicationService.execute(command))
             .isInstanceOf(PauserException.class)
             .hasMessage("Failed to find the target pods to pause.");
+      }
+
+      @Test
+      @DisplayName("propagates PauserException from kubernetesClient without wrapping")
+      void propagatesPauserExceptionFromRepositoryWithoutWrapping() throws PauserException {
+        // Arrange
+        String namespace = "test-ns";
+        String deploymentName = "test-deployment";
+        int adminPort = 60054;
+
+        PauseByDeploymentNameCommand command =
+            PauseByDeploymentNameCommand.create(namespace, deploymentName, adminPort, 5000, 3000L);
+
+        PauserException original = new PauserException("Deployment does not have any running pods.");
+        when(kubernetesClient.resolvePauseTargetByDeploymentName(namespace, deploymentName, adminPort))
+            .thenThrow(original);
+
+        // Act & Assert
+        assertThatThrownBy(() -> applicationService.execute(command))
+            .isSameAs(original)
+            .hasMessage("Deployment does not have any running pods.");
       }
 
       @Test
