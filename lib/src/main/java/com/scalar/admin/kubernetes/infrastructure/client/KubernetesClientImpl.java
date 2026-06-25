@@ -86,6 +86,13 @@ public class KubernetesClientImpl implements KubernetesClient {
   }
 
   String extractLabelSelectorFromDeployment(V1Deployment deployment) throws PauserException {
+    // V1Deployment.getMetadata() is @Nullable per the Kubernetes Java client API,
+    // but in practice it is never null for objects returned by the Kubernetes API.
+    // A future refactoring will introduce domain models to eliminate these SDK types.
+    // See: https://github.com/scalar-labs/scalar-admin-for-kubernetes/pull/46#discussion_r3393957290
+    if (deployment.getMetadata() == null) {
+      throw new PauserException("Deployment has no metadata. This should not happen.");
+    }
     String deploymentName = deployment.getMetadata().getName();
     String namespace = deployment.getMetadata().getNamespace();
 
