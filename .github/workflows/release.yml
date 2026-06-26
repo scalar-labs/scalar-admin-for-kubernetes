@@ -35,15 +35,14 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Upload the package to Maven Central Repository
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVEN_CENTRAL_GPG_SECRET_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVEN_CENTRAL_GPG_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
         run: |
-          echo "${{ secrets.SIGNING_SECRET_KEY_RING }}" | base64 -d > /tmp/secring.gpg
           ./gradlew publish \
-            -PprojVersion="${{ steps.version.outputs.version }}" \
-            -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}" \
-            -P'signing.password'="${{ secrets.SIGNING_PASSWORD }}" \
-            -Psigning.secretKeyRingFile='/tmp/secring.gpg' \
-            -PossrhUsername="${{ secrets.OSSRH_USERNAMAE }}" \
-            -PossrhPassword="${{ secrets.OSSRH_PASSWORD }}"
+            -PprojVersion="${{ steps.version.outputs.version }}"
 
       - name: Build the shadow Jar
         run: ./gradlew shadowJar
