@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.scalar.admin.kubernetes.domain.exception.PauserException;
@@ -929,6 +932,22 @@ public class KubernetesClientImplTest {
         assertEquals(2, pauseTarget.pods().size());
         assertEquals(deploymentName, pauseTarget.deployment().getMetadata().getName());
         assertEquals(adminPort, pauseTarget.adminPort());
+
+        // Verify label selector is correctly passed through to listNamespacedPod
+        // Args: namespace, pretty, allowWatchBookmarks, continue, fieldSelector, labelSelector, ...
+        verify(coreV1Api)
+            .listNamespacedPod(
+                eq(namespace),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq("app.kubernetes.io/app = scalardb-cluster"),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull());
       }
     }
   }
@@ -965,7 +984,7 @@ public class KubernetesClientImplTest {
 
   private void mockAppsV1ApiForReadNamespacedDeployment() throws ApiException {
     // Mock readNamespacedDeployment - returns deployment with selector
-    V1Deployment deployment = mockDeploymentWithSelector("scalardb-cluster", "1", "scalardb");
+    V1Deployment deployment = mockDeploymentWithSelector("scalardb-cluster", "1", "scalardb-cluster");
     deployment.getMetadata().setNamespace("default");
     when(appsV1Api.readNamespacedDeployment(any(), any(), any())).thenReturn(deployment);
   }
