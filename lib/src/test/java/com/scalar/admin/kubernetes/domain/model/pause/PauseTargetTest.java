@@ -83,7 +83,7 @@ public class PauseTargetTest {
     class WhenAdminPortIsInvalid {
 
       @ParameterizedTest
-      @ValueSource(ints = {0, -1, -100})
+      @ValueSource(ints = {0, -1, -100, 65536, 70000})
       @DisplayName("throws IllegalArgumentException")
       void throwsIllegalArgumentException(int invalidPort) {
         // Arrange
@@ -93,7 +93,7 @@ public class PauseTargetTest {
         // Act & Assert
         assertThatThrownBy(() -> new PauseTarget(Arrays.asList(pod), deployment, invalidPort))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("adminPort must be greater than 0");
+            .hasMessage(String.format(PauseCommand.ADMIN_PORT_ERROR, invalidPort));
       }
     }
   }

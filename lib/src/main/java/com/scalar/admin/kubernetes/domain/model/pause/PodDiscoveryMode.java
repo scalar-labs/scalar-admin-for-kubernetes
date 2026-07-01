@@ -72,7 +72,7 @@ public enum PodDiscoveryMode {
    * @param helmReleaseName the Helm release name (required for HELM_RELEASE mode)
    * @param deploymentName the deployment name (required for DEPLOYMENT mode)
    * @param adminPort the admin port (required for DEPLOYMENT mode)
-   * @throws IllegalArgumentException if required parameters are missing or invalid for this mode
+   * @throws IllegalArgumentException if required parameters are missing or disallowed for this mode
    */
   public void validate(
       @Nullable String helmReleaseName,
@@ -98,11 +98,6 @@ public enum PodDiscoveryMode {
         if (adminPort == null) {
           throw new IllegalArgumentException(
               "adminPort is required when podDiscoveryMode is DEPLOYMENT");
-        }
-        if (adminPort < 1 || adminPort > 65535) {
-          throw new IllegalArgumentException(
-              "adminPort must be between 1 and 65535 when podDiscoveryMode is DEPLOYMENT, but was: "
-                  + adminPort);
         }
         if (helmReleaseName != null) {
           throw new IllegalArgumentException(

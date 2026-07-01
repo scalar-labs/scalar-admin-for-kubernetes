@@ -44,10 +44,6 @@ public record PauseRequest(
     if (podDiscoveryMode == null || podDiscoveryMode.isBlank()) {
       throw new IllegalArgumentException("podDiscoveryMode is required");
     }
-    if (pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration must be greater than 0, but was: " + pauseDuration);
-    }
     if (tlsEnabled) {
       if (caRootCert == null || caRootCert.isBlank()) {
         throw new IllegalArgumentException("caRootCert is required when tlsEnabled is true");

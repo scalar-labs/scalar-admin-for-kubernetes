@@ -39,18 +39,16 @@ public record PauseByDeploymentNameCommand(
    */
   public PauseByDeploymentNameCommand {
     if (namespace == null || namespace.isBlank()) {
-      throw new IllegalArgumentException("namespace is required");
+      throw new IllegalArgumentException(NAMESPACE_REQUIRED_ERROR);
     }
     if (deploymentName == null || deploymentName.isBlank()) {
-      throw new IllegalArgumentException("deploymentName is required");
+      throw new IllegalArgumentException(DEPLOYMENT_NAME_REQUIRED_ERROR);
     }
     if (adminPort < 1 || adminPort > 65535) {
-      throw new IllegalArgumentException(
-          "adminPort must be between 1 and 65535, but was: " + adminPort);
+      throw new IllegalArgumentException(String.format(ADMIN_PORT_ERROR, adminPort));
     }
     if (pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration must be greater than 0 millisecond, but was: " + pauseDuration);
+      throw new IllegalArgumentException(String.format(PAUSE_DURATION_ERROR, pauseDuration));
     }
   }
 

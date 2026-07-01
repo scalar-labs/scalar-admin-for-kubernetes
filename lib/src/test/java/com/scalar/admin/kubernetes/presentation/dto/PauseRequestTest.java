@@ -186,34 +186,6 @@ class PauseRequestTest {
     }
 
     @Nested
-    @DisplayName("when pauseDuration is invalid")
-    class WhenPauseDurationIsInvalid {
-
-      @ParameterizedTest
-      @ValueSource(ints = {0, -1, -100, -1000})
-      @DisplayName("throws IllegalArgumentException")
-      void throwsIllegalArgumentException(int invalidPauseDuration) {
-        // Arrange & Act & Assert
-        assertThatThrownBy(
-                () ->
-                    new PauseRequest(
-                        "default",
-                        "helm-release",
-                        "my-release",
-                        null,
-                        null,
-                        invalidPauseDuration,
-                        null,
-                        false,
-                        null,
-                        null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage(
-                "pauseDuration must be greater than 0, but was: " + invalidPauseDuration);
-      }
-    }
-
-    @Nested
     @DisplayName("when tlsEnabled is true but caRootCert is missing")
     class WhenTlsEnabledButCaRootCertIsMissing {
 
