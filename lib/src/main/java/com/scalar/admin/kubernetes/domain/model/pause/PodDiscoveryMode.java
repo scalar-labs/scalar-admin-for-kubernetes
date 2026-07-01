@@ -78,8 +78,8 @@ public enum PodDiscoveryMode {
       @Nullable String helmReleaseName,
       @Nullable String deploymentName,
       @Nullable Integer adminPort) {
-    switch (this) {
-      case HELM_RELEASE:
+    var _exhaustiveCheck = switch (this) {
+      case HELM_RELEASE -> {
         if (helmReleaseName == null || helmReleaseName.isBlank()) {
           throw new IllegalArgumentException(
               "helmReleaseName is required when podDiscoveryMode is HELM_RELEASE");
@@ -88,8 +88,9 @@ public enum PodDiscoveryMode {
           throw new IllegalArgumentException(
               "deploymentName and adminPort cannot be used when podDiscoveryMode is HELM_RELEASE");
         }
-        break;
-      case DEPLOYMENT:
+        yield (Void) null;
+      }
+      case DEPLOYMENT -> {
         if (deploymentName == null || deploymentName.isBlank()) {
           throw new IllegalArgumentException(
               "deploymentName is required when podDiscoveryMode is DEPLOYMENT");
@@ -100,13 +101,15 @@ public enum PodDiscoveryMode {
         }
         if (adminPort < 1 || adminPort > 65535) {
           throw new IllegalArgumentException(
-              "adminPort must be between 1 and 65535 when podDiscoveryMode is DEPLOYMENT, but was: " + adminPort);
+              "adminPort must be between 1 and 65535 when podDiscoveryMode is DEPLOYMENT, but was: "
+                  + adminPort);
         }
         if (helmReleaseName != null) {
           throw new IllegalArgumentException(
               "helmReleaseName cannot be used when podDiscoveryMode is DEPLOYMENT");
         }
-        break;
-    }
+        yield (Void) null;
+      }
+    };
   }
 }
