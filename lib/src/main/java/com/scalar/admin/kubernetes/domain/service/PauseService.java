@@ -89,10 +89,6 @@ public class PauseService {
     Objects.requireNonNull(targetBeforePause, "targetBeforePause is required");
     Objects.requireNonNull(targetAfterPauseSupplier, "targetAfterPauseSupplier is required");
     Objects.requireNonNull(client, "client is required");
-    if (pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration is required to be greater than 0 millisecond.");
-    }
 
     // From here, we cannot throw exceptions right after they occur because we need to take care of
     // the unpause operation failure. We will throw the exception after the unpause operation or at

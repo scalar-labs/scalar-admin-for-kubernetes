@@ -9,11 +9,13 @@ import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceList;
 import io.kubernetes.client.openapi.models.V1ServicePort;
+import io.kubernetes.client.util.labels.LabelSelector;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,110 @@ public class KubernetesClientImpl implements KubernetesClient {
     } catch (Exception e) {
       throw new PauserException("Can not find any target pods.", e);
     }
+  }
+
+  @Override
+  public PauseTarget resolvePauseTargetByDeploymentName(String namespace, String deploymentName, int adminPort)
+      throws PauserException {
+    V1Deployment deployment = getDeployment(namespace, deploymentName);
+    String labelSelector = extractLabelSelectorFromDeployment(deployment);
+    List<V1Pod> pods = findPodsByLabelSelector(namespace, deploymentName, labelSelector);
+    return new PauseTarget(pods, deployment, adminPort);
+  }
+
+  V1Deployment getDeployment(String namespace, String deploymentName) throws PauserException {
+    try {
+      return appsApi.readNamespacedDeployment(deploymentName, namespace, null);
+    } catch (ApiException e) {
+      String m =
+          String.format(
+              "Kubernetes readNamespacedDeployment API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
+    }
+  }
+
+  String extractLabelSelectorFromDeployment(V1Deployment deployment) throws PauserException {
+    // V1Deployment.getMetadata() is @Nullable per the Kubernetes Java client API,
+    // but in practice it is never null for objects returned by the Kubernetes API.
+    // A future refactoring will introduce domain models to eliminate these SDK types.
+    // See: https://github.com/scalar-labs/scalar-admin-for-kubernetes/pull/46#discussion_r3393957290
+    if (deployment.getMetadata() == null) {
+      throw new PauserException("Deployment has no metadata. This should not happen.");
+    }
+    String deploymentName = deployment.getMetadata().getName();
+    String namespace = deployment.getMetadata().getNamespace();
+
+    // Check if deployment has a spec
+    if (deployment.getSpec() == null) {
+      String m =
+          String.format(
+              "Deployment %s in namespace %s does not have a spec.", deploymentName, namespace);
+      throw new PauserException(m);
+    }
+
+    // Note: selector is a required field in Kubernetes Deployment spec (since v1.16).
+    // It should never be null for a valid Deployment, but we check defensively in case
+    // of API errors, data corruption, or unexpected responses.
+    V1LabelSelector selector = deployment.getSpec().getSelector();
+    if (selector == null) {
+      String m =
+          String.format(
+              "Deployment %s in namespace %s does not have a selector.",
+              deploymentName, namespace);
+      throw new PauserException(m);
+    }
+
+    // Parse selector (may throw IllegalArgumentException for invalid operators)
+    String labelSelector;
+    try {
+      labelSelector = LabelSelector.parse(selector).toString();
+    } catch (IllegalArgumentException e) {
+      String m =
+          String.format(
+              "Deployment %s in namespace %s has an invalid selector.",
+              deploymentName, namespace);
+      throw new PauserException(m, e);
+    }
+
+    // Check if label selector is empty
+    if (labelSelector.isEmpty()) {
+      String m =
+          String.format(
+              "Deployment %s in namespace %s has an empty selector.",
+              deploymentName, namespace);
+      throw new PauserException(m);
+    }
+
+    return labelSelector;
+  }
+
+  List<V1Pod> findPodsByLabelSelector(
+      String namespace, String deploymentName, String labelSelector) throws PauserException {
+    V1PodList podList;
+    try {
+      podList =
+          coreApi.listNamespacedPod(
+              namespace, null, null, null, null, labelSelector, null, null, null, null, null);
+    } catch (ApiException e) {
+      String m =
+          String.format(
+              "Kubernetes listNamespacedPod API error with code %d and body %s.",
+              e.getCode(), e.getResponseBody());
+      throw new PauserException(m, e);
+    }
+
+    List<V1Pod> pods = podList.getItems();
+
+    if (pods.isEmpty()) {
+      String m =
+          String.format(
+              "Deployment %s in namespace %s does not have any running pods.",
+              deploymentName, namespace);
+      throw new PauserException(m);
+    }
+
+    return pods;
   }
 
   private List<V1Pod> findPodsCreatedByHelmRelease(String namespace, String releaseName)

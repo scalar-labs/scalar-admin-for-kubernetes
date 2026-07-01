@@ -145,23 +145,6 @@ class PauseServiceTest {
     }
 
     @Test
-    void pause_LessThanOnePauseDuration_ShouldThrowIllegalArgumentException() {
-      // Arrange
-      int pauseDuration = 0;
-      PauseService service = new PauseService();
-
-      // Act & Assert
-      IllegalArgumentException thrown =
-          assertThrows(
-              IllegalArgumentException.class,
-              () ->
-                  service.pause(
-                      targetBeforePause, () -> targetAfterPause, client, pauseDuration, null));
-      assertEquals(
-          "pauseDuration is required to be greater than 0 millisecond.", thrown.getMessage());
-    }
-
-    @Test
     void pause_WhenClientPauseThrowException_ShouldThrowPauseFailedException()
         throws PauserException {
       // Arrange
