@@ -210,6 +210,8 @@ The `scalar-admin-for-kubernetes` CLI tool executes Kubernetes APIs in its inter
      - ScalarDL Ledger: 50053
      - ScalarDL Auditor: 40053
 
+     > **Important:** In deployment mode, the tool discovers pods using the Deployment's label selector and sends pause RPCs to the user-specified `--admin-port`. Unlike helm-release mode, there is no automatic Scalar-product label verification or admin port auto-detection. Ensure that `--deployment-name` and `--admin-port` point to the correct Scalar product Deployment.
+
 ## Run the CLI tool in a Kubernetes environment by using a Helm Chart
 
 For details on how to use a Helm Chart to deploy Scalar Admin for Kubernetes in a Kubernetes environment, see the following documentation based on the product you're using:
