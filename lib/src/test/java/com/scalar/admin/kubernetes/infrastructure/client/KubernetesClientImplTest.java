@@ -676,6 +676,25 @@ public class KubernetesClientImplTest {
     }
 
     @Nested
+    @DisplayName("when deployment has null metadata")
+    class WhenDeploymentHasNullMetadata {
+
+      @Test
+      @DisplayName("throws PauserException")
+      void throwsPauserException() {
+        // Arrange
+        V1Deployment deployment = new V1Deployment(); // metadata null by default
+        KubernetesClientImpl kubernetesClient =
+            new KubernetesClientImpl(coreV1Api, appsV1Api);
+
+        // Act & Assert
+        assertThatThrownBy(() -> kubernetesClient.extractLabelSelectorFromDeployment(deployment))
+            .isInstanceOf(PauserException.class)
+            .hasMessageContaining("has no metadata");
+      }
+    }
+
+    @Nested
     @DisplayName("when deployment has no spec")
     class WhenDeploymentHasNoSpec {
 
