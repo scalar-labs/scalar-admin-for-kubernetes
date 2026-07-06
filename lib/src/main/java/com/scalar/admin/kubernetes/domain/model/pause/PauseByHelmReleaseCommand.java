@@ -36,14 +36,13 @@ public record PauseByHelmReleaseCommand(
    */
   public PauseByHelmReleaseCommand {
     if (namespace == null || namespace.isBlank()) {
-      throw new IllegalArgumentException("namespace is required");
+      throw new IllegalArgumentException(NAMESPACE_REQUIRED_ERROR);
     }
     if (helmReleaseName == null || helmReleaseName.isBlank()) {
-      throw new IllegalArgumentException("helmReleaseName is required");
+      throw new IllegalArgumentException(HELM_RELEASE_NAME_REQUIRED_ERROR);
     }
     if (pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration must be greater than 0 millisecond, but was: " + pauseDuration);
+      throw new IllegalArgumentException(String.format(PAUSE_DURATION_ERROR, pauseDuration));
     }
   }
 
@@ -86,5 +85,15 @@ public record PauseByHelmReleaseCommand(
         pauseDuration,
         maxPauseWaitTime,
         new TlsConfig(caRootCert, overrideAuthority));
+  }
+
+  /**
+   * Returns the pod discovery mode for this command.
+   *
+   * @return HELM_RELEASE mode
+   */
+  @Override
+  public PodDiscoveryMode podDiscoveryMode() {
+    return PodDiscoveryMode.HELM_RELEASE;
   }
 }

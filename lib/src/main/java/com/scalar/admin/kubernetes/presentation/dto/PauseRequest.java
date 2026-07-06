@@ -9,7 +9,10 @@ import javax.annotation.Nullable;
  * encapsulating all parameters needed for a pause operation.
  *
  * @param namespace the Kubernetes namespace where the target is deployed
- * @param helmReleaseName the name of the Helm release
+ * @param podDiscoveryMode the mode to discover target pods (e.g., "helm-release", "deployment")
+ * @param helmReleaseName the name of the Helm release (required for "helm-release" mode)
+ * @param deploymentName the name of the deployment (required for "deployment" mode)
+ * @param adminPort the admin port number (required for "deployment" mode)
  * @param pauseDuration the duration to pause in milliseconds
  * @param maxPauseWaitTime the maximum wait time in milliseconds for pause operation to complete,
  *     null for default
@@ -19,7 +22,10 @@ import javax.annotation.Nullable;
  */
 public record PauseRequest(
     String namespace,
-    String helmReleaseName,
+    String podDiscoveryMode,
+    @Nullable String helmReleaseName,
+    @Nullable String deploymentName,
+    @Nullable Integer adminPort,
     int pauseDuration,
     @Nullable Long maxPauseWaitTime,
     boolean tlsEnabled,
@@ -35,12 +41,8 @@ public record PauseRequest(
     if (namespace == null || namespace.isBlank()) {
       throw new IllegalArgumentException("namespace is required");
     }
-    if (helmReleaseName == null || helmReleaseName.isBlank()) {
-      throw new IllegalArgumentException("helmReleaseName is required");
-    }
-    if (pauseDuration < 1) {
-      throw new IllegalArgumentException(
-          "pauseDuration must be greater than 0, but was: " + pauseDuration);
+    if (podDiscoveryMode == null || podDiscoveryMode.isBlank()) {
+      throw new IllegalArgumentException("podDiscoveryMode is required");
     }
     if (tlsEnabled) {
       if (caRootCert == null || caRootCert.isBlank()) {

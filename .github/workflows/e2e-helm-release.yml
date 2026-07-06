@@ -1,0 +1,89 @@
+name: Run the end-to-end test (helm-release mode)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    env:
+      HELM_VERSION: v3.12.2
+      DOCKER_REGISTRY_PASSWORD: ${{ secrets.CR_PAT }}
+      DOCKER_REGISTRY_USERNAME: scalar-git
+      DOCKER_REGISTRY_SERVER: ghcr.io
+
+    strategy:
+      matrix:
+        productName:
+          - scalardb-cluster
+          - scalardl
+          - scalardl-audit
+        testMode:
+          - name: without-pod-discovery-mode
+            args: "-r foo"
+          - name: with-pod-discovery-mode
+            args: "--pod-discovery-mode helm-release -r foo"
+
+    steps:
+
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - uses: actions/checkout@v3
+
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(./gradlew :cli:properties -q | grep "version:" | awk '{print $2}')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - uses: helm/kind-action@v1.12.0
+        with:
+          cluster_name: kind
+          node_image: kindest/node:v1.35.0
+
+      - name: Set up helm command
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Add Helm repository
+        run: |
+          helm repo add scalar-labs https://scalar-labs.github.io/helm-charts
+
+      - name: Create secret resource to pull the containers from GitHub Packages
+        run: |
+          kubectl create secret docker-registry reg-docker-secrets --docker-server=${DOCKER_REGISTRY_SERVER} --docker-username=${DOCKER_REGISTRY_USERNAME} --docker-password=${DOCKER_REGISTRY_PASSWORD}
+
+      - name: Create PVC for SQLite
+        run: |
+          kubectl apply -f .github/manifests/sqlite-pvc.yaml
+
+      - name: Deploy Scalar products to Kind
+        run: |
+          helm install foo scalar-labs/${{ matrix.productName }} -f .github/manifests/${{ matrix.productName }}.yaml
+
+      - name: Deploy client pod
+        run: |
+          kubectl apply -f .github/manifests/client-pod.yaml
+
+      - name: Wait for Scalar products are started
+        run: |
+          kubectl wait --for=condition=Available deployment/$(kubectl get deployment -l app.kubernetes.io/instance=foo,app.kubernetes.io/name=${{ matrix.productName }} -o jsonpath='{.items[0].metadata.name}') --timeout 300s
+
+      - name: Build Shadow Jar
+        run: ./gradlew shadowJar
+
+      - name: Copy Shadow Jar to tester Pod
+        run: |
+          kubectl wait --for=condition=Ready pod/java21 --timeout 300s
+          kubectl cp cli/build/libs/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar java21:/tmp
+
+      - name: Run Shadow Jar (${{ matrix.testMode.name }})
+        run: |
+          kubectl exec -it java21 -- java -jar /tmp/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar ${{ matrix.testMode.args }}

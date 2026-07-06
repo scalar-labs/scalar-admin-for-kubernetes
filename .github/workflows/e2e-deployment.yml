@@ -1,4 +1,4 @@
-name: Run the end-to-end test
+name: Run the end-to-end test (deployment mode)
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  e2e:
+  e2e-deployment:
     runs-on: ubuntu-latest
 
     env:
@@ -17,10 +17,16 @@ jobs:
 
     strategy:
       matrix:
-        productName:
-          - scalardb-cluster
-          - scalardl
-          - scalardl-audit
+        product:
+          - productName: scalardb-cluster
+            deploymentName: scalardb-cluster-node
+            adminPort: 60053
+          - productName: scalardl
+            deploymentName: scalardl-ledger
+            adminPort: 50053
+          - productName: scalardl-audit
+            deploymentName: scalardl-auditor
+            adminPort: 40053
 
     steps:
 
@@ -61,7 +67,7 @@ jobs:
 
       - name: Deploy Scalar products to Kind
         run: |
-          helm install foo scalar-labs/${{ matrix.productName }} -f .github/manifests/${{ matrix.productName }}.yaml
+          helm install foo scalar-labs/${{ matrix.product.productName }} -f .github/manifests/${{ matrix.product.productName }}.yaml
 
       - name: Deploy client pod
         run: |
@@ -69,7 +75,7 @@ jobs:
 
       - name: Wait for Scalar products are started
         run: |
-          kubectl wait --for=condition=Available deployment/$(kubectl get deployment -l app.kubernetes.io/instance=foo,app.kubernetes.io/name=${{ matrix.productName }} -o jsonpath='{.items[0].metadata.name}') --timeout 300s
+          kubectl wait --for=condition=Available deployment/$(kubectl get deployment -l app.kubernetes.io/instance=foo,app.kubernetes.io/name=${{ matrix.product.productName }} -o jsonpath='{.items[0].metadata.name}') --timeout 300s
 
       - name: Build Shadow Jar
         run: ./gradlew shadowJar
@@ -79,6 +85,12 @@ jobs:
           kubectl wait --for=condition=Ready pod/java21 --timeout 300s
           kubectl cp cli/build/libs/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar java21:/tmp
 
-      - name: Run Shadow Jar
+      - name: Get deployment name
+        id: deployment
         run: |
-          kubectl exec -it java21 -- java -jar /tmp/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar -r foo
+          DEPLOYMENT_NAME=$(kubectl get deployment -l app.kubernetes.io/instance=foo,app.kubernetes.io/name=${{ matrix.product.productName }} -o jsonpath='{.items[0].metadata.name}')
+          echo "name=${DEPLOYMENT_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Run Shadow Jar with deployment mode
+        run: |
+          kubectl exec -it java21 -- java -jar /tmp/scalar-admin-for-kubernetes-cli-${{ steps.version.outputs.version }}.jar --pod-discovery-mode deployment --deployment-name ${{ steps.deployment.outputs.name }} --admin-port ${{ matrix.product.adminPort }} --namespace default
