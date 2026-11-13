@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # For Docker, update the container images pinned in the Dockerfile and the Kubernetes manifest used by the CI
+  # When a new Dockerfile or a new Kubernetes manifest that references a container image is added,
+  # add its directory to the "directories" list below
+  # The image of the client pod in /.github/manifests is covered so that it stays the same as the base image
+  # of /cli/Dockerfile; all the updates are grouped into a single PR
+  # Major version updates of the JRE base image are ignored because upgrading the Java runtime
+  # of the released image is a manual decision
+  - package-ecosystem: "docker"
+    groups:
+      container images on branch main:
+        patterns:
+          - "*"
+    directories:
+      - "/cli"
+      - "/.github/manifests"
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: [ "version-update:semver-major" ]
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "01:00"
+      timezone: "Asia/Tokyo"
